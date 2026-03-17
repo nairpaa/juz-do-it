@@ -35,35 +35,37 @@ export const t = (lang: Lang) => ({
   guideSubtitle: lang === "en" ? "Your Quran memorization companion" : "Teman hafalan Al-Quran Anda",
   guideWhatTitle: lang === "en" ? "What is JuzDoIt?" : "Apa itu JuzDoIt?",
   guideWhatBody: lang === "en"
-    ? "JuzDoIt is a simple tool to help you track your Quran memorization. It uses a spaced repetition system based on the Ebbinghaus forgetting curve — the same science behind how our brains retain information over time."
-    : "JuzDoIt adalah alat sederhana untuk membantu melacak hafalan Al-Quran Anda. Menggunakan sistem pengulangan berjarak (spaced repetition) berdasarkan kurva lupa Ebbinghaus — sains yang sama di balik cara otak kita menyimpan informasi dalam jangka panjang.",
+    ? "When we memorize the Quran, the hardest part isn't memorizing — it's keeping what we've memorized. Without regular review, our memory fades. JuzDoIt helps you know exactly which ayahs are getting weak and need to be reviewed, so nothing is forgotten."
+    : "Saat menghafal Al-Quran, yang paling sulit bukan menghafalnya — tapi menjaga hafalan yang sudah ada. Tanpa diulang secara rutin, ingatan akan memudar. JuzDoIt membantu Anda tahu persis ayat mana yang mulai lemah dan perlu diulang, supaya tidak ada yang terlupakan.",
   guideHowTitle: lang === "en" ? "How it works" : "Cara kerja",
   guideHowBody: lang === "en"
-    ? "Each ayah you memorize has a retention level. After you mark it as memorized, the retention starts at 100% and gradually decreases over time. Every time you review it, the retention resets and the decay slows down — meaning each review makes the memory stronger and longer-lasting."
-    : "Setiap ayat yang Anda hafal memiliki tingkat retensi. Setelah ditandai sebagai hafal, retensi dimulai dari 100% dan menurun seiring waktu. Setiap kali Anda muraja'ah, retensi direset dan penurunannya melambat — artinya setiap pengulangan membuat hafalan semakin kuat dan tahan lama.",
-  guideFormulaEn: "The retention formula follows an exponential decay: retention = 100% × e^(-t / stability), where t is time since last review and stability grows with each review (1 day → 3 days → 7 days → 14 days → 30 days → keeps doubling).",
-  guideFormulaId: "Formula retensi mengikuti peluruhan eksponensial: retensi = 100% × e^(-t / stabilitas), di mana t adalah waktu sejak review terakhir dan stabilitas bertambah setiap review (1 hari → 3 hari → 7 hari → 14 hari → 30 hari → terus berlipat).",
-  guideScienceTitle: lang === "en" ? "The science behind it" : "Dasar ilmiah",
+    ? "Every ayah you memorize gets tracked in this app. Think of each ayah like a plant — if you water it regularly (review), it stays alive and grows stronger. If you leave it too long without watering, it starts to wilt. JuzDoIt shows you which \"plants\" need watering today."
+    : "Setiap ayat yang Anda hafal akan dilacak di aplikasi ini. Bayangkan setiap ayat seperti tanaman — kalau rajin disiram (diulang), dia tetap hidup dan makin kuat. Kalau terlalu lama tidak disiram, mulai layu. JuzDoIt menunjukkan \"tanaman\" mana yang perlu disiram hari ini.",
+  guideFormulaEn: "The app sets your review schedule automatically. At first you review an ayah the next day, then after 3 days, then a week, two weeks, a month — and the gap keeps getting longer. The more you review, the less often you need to. And as the gaps grow longer, you free up more time to memorize new ayahs. That's how JuzDoIt helps you not just maintain your memorization, but steadily grow it.",
+  guideFormulaId: "Aplikasi mengatur jadwal pengulangan secara otomatis. Awalnya Anda mengulang ayat besok, lalu setelah 3 hari, lalu seminggu, dua minggu, sebulan — dan jaraknya terus bertambah. Makin sering diulang, makin jarang perlu diulang. Dan saat jaraknya makin panjang, waktu luang Anda makin banyak untuk menghafal ayat baru. Begitulah JuzDoIt membantu bukan hanya menjaga hafalan, tapi juga terus menambahnya.",
+  guideScienceTitle: lang === "en" ? "Why does this work?" : "Kenapa cara ini efektif?",
   guideScienceP1: lang === "en"
-    ? "This system is based on Hermann Ebbinghaus' forgetting curve (1885), which demonstrated that memory retention decays exponentially over time — with 50-70% of new information lost within 24 hours if not reinforced."
-    : "Sistem ini berdasarkan kurva lupa Hermann Ebbinghaus (1885), yang menunjukkan bahwa retensi memori menurun secara eksponensial — dengan 50-70% informasi baru hilang dalam 24 jam jika tidak diulang.",
+    ? "Our brains are built to forget. If we learn something new and never look at it again, most of it disappears within a day. This is normal — it happens to everyone."
+    : "Otak kita memang dirancang untuk lupa. Kalau kita belajar sesuatu yang baru lalu tidak pernah dilihat lagi, sebagian besar hilang dalam sehari. Ini normal — terjadi pada semua orang.",
   guideScienceP2: lang === "en"
-    ? "The solution is spaced repetition: reviewing material at strategically increasing intervals. Each review triggers protein synthesis in the brain, converting short-term memory into permanent neural connections. This is the same principle used by modern tools like Anki and SuperMemo."
-    : "Solusinya adalah spaced repetition (pengulangan berjarak): mengulang materi pada interval yang meningkat secara strategis. Setiap pengulangan memicu sintesis protein di otak, mengubah memori jangka pendek menjadi koneksi neural permanen. Prinsip yang sama digunakan oleh Anki dan SuperMemo.",
+    ? "But there's a trick: if you review at just the right moment — right before you're about to forget — the memory becomes much stronger. And the next time, it takes even longer before you forget. This method is called spaced repetition, and it's used all over the world for learning languages, medicine, and more."
+    : "Tapi ada caranya: kalau Anda mengulang di waktu yang tepat — tepat sebelum lupa — ingatan jadi jauh lebih kuat. Dan berikutnya, butuh waktu lebih lama lagi sebelum lupa. Metode ini disebut spaced repetition, dan dipakai di seluruh dunia untuk belajar bahasa, kedokteran, dan lainnya.",
   guideScienceP3: lang === "en"
-    ? "Research on Quran memorization specifically (muraja'ah) confirms that structured repetition schedules significantly improve long-term retention among huffaz."
-    : "Riset tentang hafalan Al-Quran (muraja'ah) secara khusus mengkonfirmasi bahwa jadwal pengulangan terstruktur secara signifikan meningkatkan retensi jangka panjang di kalangan huffaz.",
+    ? "This same approach has been studied for Quran memorization. The result: those who review on a regular schedule remember far more than those who review whenever they feel like it."
+    : "Pendekatan yang sama sudah diteliti untuk hafalan Al-Quran. Hasilnya: mereka yang mengulang secara terjadwal mengingat jauh lebih banyak dibanding yang mengulang sesuka hati.",
   guideReferences: lang === "en" ? "References:" : "Referensi:",
-  guideWhyTitle: lang === "en" ? "Why memorize the Quran?" : "Mengapa menghafal Al-Quran?",
+  guideWhyTitle: lang === "en" ? "The virtue of memorizing the Quran" : "Keutamaan menghafal Al-Quran",
   guideWhyIntro: lang === "en" ? "The Prophet Muhammad (peace be upon him) said:" : "Rasulullah shallallahu 'alaihi wa sallam bersabda:",
   guideHadith1: lang === "en"
-    ? "The best among you are those who learn the Quran and teach it."
-    : "Sebaik-baik kalian adalah orang yang mempelajari Al-Quran dan mengajarkannya.",
-  guideAlsoSaid: lang === "en" ? "And he also said:" : "Dan beliau juga bersabda:",
-  guideHadith2: lang === "en"
     ? "It will be said to the companion of the Quran: Read, ascend, and recite as you used to recite in the world, for your rank will be at the last verse you recite."
     : "Akan dikatakan kepada shahibul Quran: Bacalah, naiklah, dan bacalah dengan tartil sebagaimana engkau membacanya di dunia, karena kedudukanmu ada pada ayat terakhir yang engkau baca.",
+  guideHadith1Source: "— Sunan Abu Dawud 1464, Jami at-Tirmidhi 2914",
+  guideAlsoSaid: lang === "en" ? "And he also said:" : "Dan beliau juga bersabda:",
+  guideHadith2: lang === "en"
+    ? "Whoever reads the Quran, learns it, and acts upon it, on the Day of Resurrection his parents will be crowned with a light whose brightness is like the brightness of the sun."
+    : "Siapa yang membaca Al-Quran, mempelajarinya, dan mengamalkannya, maka pada hari kiamat kedua orang tuanya akan dimahkotai dengan cahaya yang terangnya seperti terangnya matahari.",
+  guideHadith2Source: "— Musnad Ahmad 15645",
   guideClosing: lang === "en"
-    ? "Every ayah you memorize is a step closer to Allah. Every review is an act of worship. Be consistent, even if it is little."
-    : "Setiap ayat yang Anda hafal adalah langkah mendekat kepada Allah. Setiap muraja'ah adalah ibadah. Istiqomah, walau sedikit.",
+    ? "The more you memorize, the higher your rank in the hereafter. And it's not just for you — your parents will be honored with a crown of light on the Day of Judgment. Every ayah you memorize and every review you do is an investment for you and your family."
+    : "Semakin banyak yang dihafal, semakin tinggi derajat Anda di akhirat. Dan bukan hanya untuk Anda — orang tua Anda pun akan dimuliakan dengan mahkota cahaya di hari kiamat. Setiap ayat yang dihafal dan setiap muraja'ah adalah investasi untuk Anda dan keluarga.",
 });

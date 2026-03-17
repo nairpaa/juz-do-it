@@ -299,19 +299,16 @@ function GuidePage({ l, lang }: { l: ReturnType<typeof t>; lang: Lang }) {
           <p className="mb-3">{l.guideWhyIntro}</p>
           <blockquote className="border-l-2 border-gold/30 pl-4 italic text-cream/80 mb-3">
             &ldquo;{l.guideHadith1}&rdquo;
-            <span className="block text-xs text-muted mt-1 not-italic">— Sahih al-Bukhari</span>
+            <span className="block text-xs text-muted mt-1 not-italic">{l.guideHadith1Source}</span>
           </blockquote>
           <p className="mb-3">{l.guideAlsoSaid}</p>
           <blockquote className="border-l-2 border-gold/30 pl-4 italic text-cream/80 mb-3">
             &ldquo;{l.guideHadith2}&rdquo;
-            <span className="block text-xs text-muted mt-1 not-italic">— Sunan Abu Dawud, Jami at-Tirmidhi</span>
+            <span className="block text-xs text-muted mt-1 not-italic">{l.guideHadith2Source}</span>
           </blockquote>
           <p>{l.guideClosing}</p>
         </div>
 
-        <div className="pt-4 border-t border-white/[0.04] text-[13px] text-faint">
-          <p>JuzDoIt v0.1.0</p>
-        </div>
       </div>
     </div>
   );
