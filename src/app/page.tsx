@@ -63,7 +63,8 @@ export default function Home() {
   const navLabels: Record<Page, string> = { surahs: l.quran, stats: l.progress, about: l.guide };
 
   return (
-    <div className="relative z-10 w-[92vw] max-w-[920px] h-[86vh] max-h-[720px] flex rounded-3xl overflow-hidden border border-gold/[0.15] bg-night-2/[0.92] backdrop-blur-[40px] shadow-[0_4px_60px_rgba(0,0,0,0.5),0_0_120px_rgba(212,168,83,0.05),inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="relative z-10 w-[92vw] max-w-[920px] flex flex-col items-center">
+    <div className="w-full h-[84vh] max-h-[700px] flex rounded-3xl overflow-hidden border border-gold/[0.15] bg-night-2/[0.92] backdrop-blur-[40px] shadow-[0_4px_60px_rgba(0,0,0,0.5),0_0_120px_rgba(212,168,83,0.05),inset_0_1px_0_rgba(255,255,255,0.04)]">
 
       {/* ═══ SIDEBAR ═══ */}
       <div className="w-[240px] shrink-0 flex flex-col min-h-0 border-r border-white/[0.04]">
@@ -74,7 +75,7 @@ export default function Home() {
           <div className="flex items-center gap-0.5">
             {(["en", "id"] as Lang[]).map((code) => (
               <button key={code} onClick={() => setLang(code)}
-                className={`px-2 py-0.5 text-[11px] font-medium rounded-md cursor-pointer border-none transition-all ${lang === code ? "bg-gold/[0.1] text-gold" : "bg-transparent text-faint hover:text-cream"}`}>
+                className={`px-2 py-0.5 text-xs font-medium rounded-md cursor-pointer border-none transition-all ${lang === code ? "bg-gold/[0.1] text-gold" : "bg-transparent text-faint hover:text-cream"}`}>
                 {code.toUpperCase()}
               </button>
             ))}
@@ -107,7 +108,7 @@ export default function Home() {
             return (
               <div key={s.number} onClick={() => loadSurah(s)}
                 className={`flex items-center gap-3 py-2 px-3 rounded-xl cursor-pointer transition-all mb-0.5 ${isSel ? "bg-gold/[0.06]" : "hover:bg-white/[0.02]"}`}>
-                <div className={`w-7 h-7 flex items-center justify-center text-[11px] font-semibold rounded-lg shrink-0 ${has ? "bg-gold/[0.07] text-gold" : "bg-white/[0.02] text-faint"}`}>{s.number}</div>
+                <div className={`w-7 h-7 flex items-center justify-center text-xs font-semibold rounded-lg shrink-0 ${has ? "bg-gold/[0.07] text-gold" : "bg-white/[0.02] text-faint"}`}>{s.number}</div>
                 <div className="flex-1">
                   <div className="text-[13px] font-medium text-cream leading-tight">{s.latin}</div>
                   {has && <div className="mt-0.5"><RetentionBadge level={calculateSurahBattery(sp)} /></div>}
@@ -136,6 +137,10 @@ export default function Home() {
         )}
       </div>
     </div>
+    <div className="mt-3 text-xs text-cream-dim">
+      JuzDoIt by <a href="https://nairpaa.me" target="_blank" rel="noopener noreferrer" className="text-gold-dim hover:text-gold transition-colors">Nairpaa</a>
+    </div>
+    </div>
   );
 }
 
@@ -152,7 +157,7 @@ function SurahDetail({ surah, detailActive, detailMap, l, lang, onReview, onMemo
         <div>
           <h1 className="font-['Amiri'] text-3xl font-bold m-0 gold-text">{surah.latin}</h1>
           <div className="text-sm text-muted mt-1">{l.meaning(surah)} · {surah.ayahCount} {l.ayat} · {surah.type === "makkiyah" ? "Makkiyah" : "Madaniyah"}</div>
-          {detailActive.length > 0 && <div className="text-xs text-faint mt-2">{l.ofAyahsTracked(detailActive.length, surah.ayahCount)}</div>}
+          {detailActive.length > 0 && <div className="text-[13px] text-faint mt-2">{l.ofAyahsTracked(detailActive.length, surah.ayahCount)}</div>}
         </div>
         <div className="text-right shrink-0">
           <div className="font-['Noto_Naskh_Arabic'] text-4xl font-semibold text-gold leading-snug" dir="rtl">{surah.name}</div>
@@ -170,7 +175,7 @@ function SurahDetail({ surah, detailActive, detailMap, l, lang, onReview, onMemo
               <div className={`w-9 h-9 flex items-center justify-center text-sm font-semibold rounded-lg shrink-0 ${active ? "bg-gold/[0.05] text-gold-dim" : "bg-white/[0.025] text-faint"}`}>{n}</div>
               <div className="flex-1 min-w-0 flex items-center gap-3">
                 {active ? (
-                  <><RetentionBadge level={batt} /><span className="text-xs text-faint">{p!.reviewCount}x</span></>
+                  <><RetentionBadge level={batt} /><span className="text-[13px] text-faint">{p!.reviewCount}x</span></>
                 ) : (
                   <span className="text-sm text-ghost">{l.notMemorized}</span>
                 )}
@@ -222,7 +227,7 @@ function StatsPage({ l, memorizedCount, lowCount, pct, memorizedSurahs, active, 
           <div key={s.label} className="rounded-2xl bg-white/[0.02] border border-white/[0.04] p-6 text-center">
             <div className={`font-['Amiri'] text-4xl font-bold leading-none ${s.color}`}>{s.val}</div>
             <div className="text-sm text-muted mt-3">{s.label}</div>
-            <div className="text-xs text-faint mt-1">{s.sub}</div>
+            <div className="text-[13px] text-faint mt-1">{s.sub}</div>
           </div>
         ))}
       </div>
@@ -270,7 +275,7 @@ function GuidePage({ l, lang }: { l: ReturnType<typeof t>; lang: Lang }) {
         <div>
           <h3 className="font-['Amiri'] text-lg font-bold text-cream mb-2">{l.guideHowTitle}</h3>
           <p className="mb-3">{l.guideHowBody}</p>
-          <p><span className="text-gold font-mono text-xs">{lang === "en" ? l.guideFormulaEn : l.guideFormulaId}</span></p>
+          <p><span className="text-gold font-mono text-[13px]">{lang === "en" ? l.guideFormulaEn : l.guideFormulaId}</span></p>
         </div>
 
         <div>
@@ -278,7 +283,7 @@ function GuidePage({ l, lang }: { l: ReturnType<typeof t>; lang: Lang }) {
           <p className="mb-3">{l.guideScienceP1}</p>
           <p className="mb-3">{l.guideScienceP2}</p>
           <p className="mb-3">{l.guideScienceP3}</p>
-          <div className="text-xs text-faint mt-4 space-y-1">
+          <div className="text-[13px] text-faint mt-4 space-y-1">
             <p>{l.guideReferences}</p>
             <ul className="list-disc pl-4 space-y-1">
               <li>Ebbinghaus, H. (1885). Memory: A Contribution to Experimental Psychology</li>
@@ -304,7 +309,7 @@ function GuidePage({ l, lang }: { l: ReturnType<typeof t>; lang: Lang }) {
           <p>{l.guideClosing}</p>
         </div>
 
-        <div className="pt-4 border-t border-white/[0.04] text-xs text-faint">
+        <div className="pt-4 border-t border-white/[0.04] text-[13px] text-faint">
           <p>JuzDoIt v0.1.0</p>
         </div>
       </div>

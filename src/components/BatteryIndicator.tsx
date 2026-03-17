@@ -13,7 +13,7 @@ export function RetentionBadge({ level }: { level: number }) {
         {fw > 0 && <rect x={s+1} y={s+1} width={fw} height={h-s*2-2} rx={1.5} fill={fill} />}
         <rect x={w+.5} y={h*.28} width={tip} height={h*.44} rx={1} fill="rgba(255,255,255,0.05)" />
       </svg>
-      <span className="text-xs font-semibold tabular-nums">{level}%</span>
+      <span className="text-[13px] font-semibold tabular-nums">{level}%</span>
     </span>
   );
 }
