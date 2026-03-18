@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Analytics02Icon, Book02Icon, Idea01Icon, Clock01Icon } from "@hugeicons/core-free-icons";
+import { Analytics02Icon, Book02Icon, Idea01Icon, Clock01Icon, BookCheckIcon, AlertCircleIcon, Calendar01Icon, Layers01Icon } from "@hugeicons/core-free-icons";
 import { surahs, Surah, TOTAL_AYAHS } from "@/data/surahs";
 import { RetentionBadge } from "@/components/BatteryIndicator";
 import { calculateBattery, calculateSurahBattery } from "@/lib/battery";
+import { JUZ_BOUNDARIES } from "@/lib/quran-metadata";
 import {
   DerivedAyahState, ReviewEvent, getAllDerivedStates, getDerivedStatesForSurah,
   addReview, undoLastEvent, deleteEvent, getLog,
@@ -265,6 +266,59 @@ function StatsPage({ l, memorizedCount, lowCount, pct, memorizedSurahs, active, 
     [active]
   );
 
+  const todayReviews = useMemo(() => {
+    const now = new Date();
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    return log.filter((e) => new Date(e.timestamp).getTime() >= dayStart).length;
+  }, [log]);
+
+  const avgRetention = useMemo(() => {
+    if (active.length === 0) return 0;
+    const sum = active.reduce((acc, s) => acc + calculateBattery(s), 0);
+    return Math.round(sum / active.length);
+  }, [active]);
+
+  const surahProgressByJuz = useMemo(() => {
+    type JuzItem = { surah: Surah; tracked: number; total: number; pct: number; ayahRange: string };
+    const grouped: { juz: number; items: JuzItem[] }[] = [];
+
+    for (const jb of JUZ_BOUNDARIES) {
+      const items: JuzItem[] = [];
+
+      // Find all surahs that overlap with this juz
+      for (const s of memorizedSurahs) {
+        if (s.number < jb.start.surah || s.number > jb.end.surah) continue;
+
+        // Calculate ayah range for this surah within this juz
+        const ayahStart = s.number === jb.start.surah ? jb.start.ayah : 1;
+        const ayahEnd = s.number === jb.end.surah ? jb.end.ayah : s.ayahCount;
+        const totalInJuz = ayahEnd - ayahStart + 1;
+
+        // Count tracked ayahs in this range
+        const trackedInJuz = active.filter(
+          (a) => a.surahNumber === s.number && a.ayahNumber >= ayahStart && a.ayahNumber <= ayahEnd
+        ).length;
+
+        if (trackedInJuz > 0) {
+          const range = (ayahStart === 1 && ayahEnd === s.ayahCount) ? "" : `${ayahStart}-${ayahEnd}`;
+          items.push({
+            surah: s,
+            tracked: trackedInJuz,
+            total: totalInJuz,
+            pct: Math.round((trackedInJuz / totalInJuz) * 100),
+            ayahRange: range,
+          });
+        }
+      }
+
+      if (items.length > 0) {
+        grouped.push({ juz: jb.juz, items: items.sort((a, b) => a.surah.number - b.surah.number) });
+      }
+    }
+
+    return grouped;
+  }, [memorizedSurahs, active]);
+
   const chartData = useMemo(() => {
     const now = new Date();
     const days: { date: string; fullDate: string; reviews: number; totalAyahs: number }[] = [];
@@ -320,18 +374,56 @@ function StatsPage({ l, memorizedCount, lowCount, pct, memorizedSurahs, active, 
 
       <div className={`flex-1 overflow-y-auto px-8 py-6 ${SCROLL_CLS}`}>
         {tab === "overview" && (
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { val: memorizedCount, label: l.ayahsMemorized, sub: l.outOf, color: "text-gold" },
-              { val: lowCount, label: l.needsReview, sub: l.below40, color: "text-red" },
-              { val: `${pct}%`, label: l.progressLabel, sub: `${memorizedSurahs.length} ${l.surahs}`, color: "text-green" },
-            ].map((s) => (
-              <div key={s.label} className="rounded-2xl bg-white/[0.02] border border-white/[0.04] p-5 text-center">
-                <div className={`font-['Amiri'] text-4xl font-bold leading-none ${s.color}`}>{s.val}</div>
-                <div className="text-sm text-muted mt-3">{s.label}</div>
-                <div className="text-[13px] text-faint mt-1">{s.sub}</div>
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { val: memorizedCount, sub: `(${pct}%)`, label: l.ayahsMemorized, extra: l.outOf, color: "text-gold", subColor: "text-gold-dim", icon: BookCheckIcon },
+                { val: lowCount, sub: `(${avgRetention}%)`, label: l.needsReview, extra: l.avgRetention, color: "text-red", subColor: avgRetention >= 60 ? "text-green" : avgRetention >= 30 ? "text-gold-dim" : "text-red", icon: AlertCircleIcon },
+                { val: todayReviews, sub: null, label: l.todayReviews, extra: todayReviews > 0 ? l.keepGoing : l.startToday, color: todayReviews > 0 ? "text-green" : "text-red", subColor: "", icon: Calendar01Icon },
+                { val: `${memorizedSurahs.length}`, sub: null, label: l.surahsTracked, extra: `${l.outOfSurahs}`, color: "text-cream", subColor: "", icon: Layers01Icon },
+              ].map((s) => (
+                <div key={s.label} className="rounded-2xl bg-white/[0.02] border border-white/[0.04] p-5 flex items-center gap-4">
+                  <HugeiconsIcon icon={s.icon} size={24} className="text-faint shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <div className={`font-['Amiri'] text-3xl font-bold leading-none ${s.color}`}>{s.val}</div>
+                      {s.sub && <div className={`text-base font-medium ${s.subColor}`}>{s.sub}</div>}
+                    </div>
+                    <div className="text-sm text-muted mt-1.5">{s.label}</div>
+                    {s.extra && <div className="text-[13px] text-faint mt-0.5">{s.extra}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {surahProgressByJuz.length > 0 && (
+              <div>
+                <h3 className="text-[13px] font-semibold uppercase tracking-widest text-faint mb-3">{l.surahCompletion}</h3>
+                <div className="flex flex-col gap-4">
+                  {surahProgressByJuz.map((group) => (
+                    <div key={group.juz}>
+                      <div className="text-[12px] font-medium text-gold-dim mb-2">Juz {group.juz}</div>
+                      <div className="flex flex-col gap-2">
+                        {group.items.map((sp) => (
+                          <div key={sp.surah.number} onClick={() => onSelectSurah(sp.surah)}
+                            className="flex items-center gap-4 py-3 px-4 rounded-xl bg-white/[0.02] border border-white/[0.04] cursor-pointer hover:bg-white/[0.04] transition-colors">
+                            <span className="text-sm text-cream flex-1">
+                              <span className="text-faint">{sp.surah.number}.</span> {sp.surah.latin}
+                              {sp.ayahRange && <span className="text-faint text-[12px] ml-1">({sp.ayahRange})</span>}
+                            </span>
+                            <span className="text-[13px] text-faint">{sp.tracked}/{sp.total}</span>
+                            <div className="w-24 h-2 rounded-full bg-white/[0.04] overflow-hidden">
+                              <div className={`h-full rounded-full ${sp.pct === 100 ? "bg-green/70" : "bg-gold/60"}`} style={{ width: `${sp.pct}%` }} />
+                            </div>
+                            <span className={`text-[13px] w-10 text-right ${sp.pct === 100 ? "text-green" : "text-gold"}`}>{sp.pct}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
           </div>
         )}
 
@@ -463,7 +555,7 @@ function ActivityHeatmap({ log, l }: { log: ReviewEvent[]; l: ReturnType<typeof 
 
       {/* Month labels row */}
       <div className="flex gap-[3px] mb-1 ml-[30px]">
-        {weekCols.map((week, wi) => {
+        {weekCols.map((_, wi) => {
           const ml = monthLabels.find((m) => m.col === wi);
           return <div key={wi} className="w-[12px] text-[10px] text-faint leading-none whitespace-nowrap">{ml ? ml.label : ""}</div>;
         })}
