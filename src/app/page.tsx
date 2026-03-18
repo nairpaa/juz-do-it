@@ -726,41 +726,119 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
   onSelectSurah: (s: Surah) => void;
 }) {
   const [confirm, setConfirm] = useState<{ surahNumber: number; ayahNumber: number; timestamp: string; surahName: string } | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const allEvents = useMemo(() => {
-    const events: { surahNumber: number; ayahNumber: number; timestamp: string }[] = [];
+  const toggle = (key: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  type HistEvent = { surahNumber: number; ayahNumber: number; timestamp: string };
+  type SurahGroup = { surah: Surah; events: HistEvent[] };
+  type DateGroup = { dateLabel: string; surahGroups: SurahGroup[] };
+
+  const grouped = useMemo(() => {
+    const events: HistEvent[] = [];
     for (const state of allStates) {
-      for (const event of state.events) {
-        events.push(event);
-      }
+      for (const event of state.events) events.push(event);
     }
-    return events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const dateMap = new Map<string, HistEvent[]>();
+    for (const e of events) {
+      const d = new Date(e.timestamp);
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (!dateMap.has(key)) dateMap.set(key, []);
+      dateMap.get(key)!.push(e);
+    }
+
+    const result: DateGroup[] = [];
+    for (const [, dayEvents] of dateMap) {
+      const d = new Date(dayEvents[0].timestamp);
+      const dateLabel = fmtDate(d);
+
+      const surahMap = new Map<number, HistEvent[]>();
+      for (const e of dayEvents) {
+        if (!surahMap.has(e.surahNumber)) surahMap.set(e.surahNumber, []);
+        surahMap.get(e.surahNumber)!.push(e);
+      }
+
+      const surahGroups: SurahGroup[] = [];
+      for (const [num, evts] of surahMap) {
+        const surah = surahs.find((s) => s.number === num);
+        if (surah) surahGroups.push({ surah, events: evts });
+      }
+      surahGroups.sort((a, b) => a.surah.number - b.surah.number);
+
+      result.push({ dateLabel, surahGroups });
+    }
+
+    return result;
   }, [allStates]);
+
+  const fmtTime = (ts: string) => {
+    const d = new Date(ts);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
+
+  const totalEvents = grouped.reduce((sum, dg) => sum + dg.surahGroups.reduce((s, sg) => s + sg.events.length, 0), 0);
 
   return (
     <div className={`flex-1 overflow-y-auto px-8 py-8 ${SCROLL_CLS}`}>
       <h2 className="font-['Amiri'] text-3xl font-bold gold-text mb-6">{l.history}</h2>
 
-      {allEvents.length === 0 ? (
+      {totalEvents === 0 ? (
         <div className="text-center py-10 text-base text-faint">{l.noHistory}</div>
       ) : (
-        <div className="flex flex-col gap-1">
-          {allEvents.map((e) => {
-            const s = surahs.find((s) => s.number === e.surahNumber);
-            return (
-              <div key={`${e.surahNumber}-${e.ayahNumber}-${e.timestamp}`}
-                className="flex items-center gap-4 py-3 px-4 rounded-xl hover:bg-white/[0.012] transition-colors">
-                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => s && onSelectSurah(s)}>
-                  <div className="text-sm font-medium text-cream">{s?.latin} — {l.ayah} {e.ayahNumber}</div>
-                  <div className="text-[12px] text-ghost mt-0.5">{timeAgo(e.timestamp, lang)}</div>
-                </div>
-                <button onClick={() => setConfirm({ ...e, surahName: s?.latin || "" })}
-                  className="px-2 h-7 text-xs font-medium rounded-lg bg-red/[0.06] border border-red/[0.1] text-red cursor-pointer hover:bg-red/[0.13] transition-colors">
-                  {l.deleteEntry}
-                </button>
+        <div className="flex flex-col gap-5">
+          {grouped.map((dg) => (
+            <div key={dg.dateLabel}>
+              <div className="text-[12px] font-medium text-gold-dim mb-2">{dg.dateLabel}</div>
+              <div className="flex flex-col gap-1">
+                {dg.surahGroups.map((sg) => {
+                  const key = `${dg.dateLabel}-${sg.surah.number}`;
+                  const isOpen = expanded.has(key);
+                  return (
+                    <div key={key}>
+                      <button onClick={() => toggle(key)}
+                        className="w-full flex items-center gap-4 py-3 px-4 rounded-xl cursor-pointer transition-all duration-200 text-left hover:bg-white/[0.012] bg-transparent border-none">
+                        <div className={`w-9 h-9 flex items-center justify-center text-sm font-semibold rounded-lg shrink-0 ${isOpen ? "bg-gold/[0.1] text-gold" : "bg-gold/[0.05] text-gold-dim"}`}>
+                          {sg.surah.number}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-sm font-semibold ${isOpen ? "text-gold-soft" : "text-cream"}`}>{sg.surah.latin}</span>
+                          <span className="text-[12px] text-faint ml-2">{sg.events.length} muraja'ah</span>
+                        </div>
+                        <HugeiconsIcon icon={isOpen ? ArrowDown01Icon : ArrowRight01Icon} size={16} className={`shrink-0 transition-colors ${isOpen ? "text-gold" : "text-faint"}`} />
+                      </button>
+                      {isOpen && (
+                        <div className="mt-1 ml-5 mb-3">
+                          {sg.events.map((e) => (
+                            <div key={`${e.surahNumber}-${e.ayahNumber}-${e.timestamp}`}
+                              className="flex items-center gap-4 py-3 px-4 rounded-xl transition-colors hover:bg-white/[0.012]">
+                              <div className="w-9 h-9 flex items-center justify-center text-sm font-semibold rounded-lg shrink-0 bg-gold/[0.05] text-gold-dim">{e.ayahNumber}</div>
+                              <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                                <HugeiconsIcon icon={Clock01Icon} size={12} className="text-ghost" />
+                                <span className="text-[12px] text-ghost">{fmtTime(e.timestamp)}</span>
+                              </div>
+                              <button onClick={(ev) => { ev.stopPropagation(); setConfirm({ ...e, surahName: sg.surah.latin }); }}
+                                className="px-2 h-7 text-xs font-medium rounded-lg bg-red/[0.06] border border-red/[0.1] text-red cursor-pointer hover:bg-red/[0.13] transition-colors">
+                                {l.deleteEntry}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
 
