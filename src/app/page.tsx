@@ -5,13 +5,17 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Analytics02Icon, Book02Icon, Idea01Icon, Clock01Icon } from "@hugeicons/core-free-icons";
 import { surahs, Surah, TOTAL_AYAHS } from "@/data/surahs";
 import { RetentionBadge } from "@/components/BatteryIndicator";
-import { AyahState, calculateBattery, calculateSurahBattery } from "@/lib/battery";
+import { calculateBattery, calculateSurahBattery } from "@/lib/battery";
 import {
-  DerivedAyahState, getAllDerivedStates, getDerivedStatesForSurah,
-  addReview, undoLastEvent, deleteEvent,
+  DerivedAyahState, ReviewEvent, getAllDerivedStates, getDerivedStatesForSurah,
+  addReview, undoLastEvent, deleteEvent, getLog,
 } from "@/lib/store";
 import { Lang, t } from "@/lib/i18n";
 import { timeAgo, nextReview } from "@/lib/time";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+
+const MONTHS_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const fmtDate = (d: Date) => `${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
 
 type Page = "surahs" | "stats" | "history" | "about";
 
@@ -33,7 +37,9 @@ export default function Home() {
   const [lang, setLang] = useState<Lang>("en");
   const l = useMemo(() => t(lang), [lang]);
 
-  const reload = useCallback(() => setAllStates(getAllDerivedStates()), []);
+  const [log, setLog] = useState<ReviewEvent[]>([]);
+
+  const reload = useCallback(() => { setAllStates(getAllDerivedStates()); setLog(getLog()); }, []);
 
   const loadSurah = useCallback((surah: Surah) => {
     setPage("surahs");
@@ -151,7 +157,7 @@ export default function Home() {
           />
         ) : page === "stats" ? (
           <StatsPage l={l} memorizedCount={memorizedCount} lowCount={lowCount} pct={pct}
-            memorizedSurahs={memorizedSurahs} active={active} onSelectSurah={loadSurah} />
+            memorizedSurahs={memorizedSurahs} active={active} log={log} onSelectSurah={loadSurah} />
         ) : page === "history" ? (
           <HistoryPage l={l} lang={lang} allStates={allStates}
             onDeleteEvent={(s, a, ts) => { deleteEvent(s, a, ts); reload(); if (selected) loadSurah(selected); }}
@@ -242,10 +248,14 @@ function SurahDetail({ surah, surahActive, surahStates, l, lang, onReview }: {
   );
 }
 
-function StatsPage({ l, memorizedCount, lowCount, pct, memorizedSurahs, active, onSelectSurah }: {
+type StatsTab = "overview" | "charts" | "weakest";
+
+function StatsPage({ l, memorizedCount, lowCount, pct, memorizedSurahs, active, log, onSelectSurah }: {
   l: ReturnType<typeof t>; memorizedCount: number; lowCount: number; pct: number;
-  memorizedSurahs: Surah[]; active: DerivedAyahState[]; onSelectSurah: (s: Surah) => void;
+  memorizedSurahs: Surah[]; active: DerivedAyahState[]; log: ReviewEvent[]; onSelectSurah: (s: Surah) => void;
 }) {
+  const [tab, setTab] = useState<StatsTab>("overview");
+
   const weakest = useMemo(() =>
     [...active]
       .map((s) => ({ ...s, battery: calculateBattery(s) }))
@@ -255,45 +265,285 @@ function StatsPage({ l, memorizedCount, lowCount, pct, memorizedSurahs, active, 
     [active]
   );
 
-  return (
-    <div className={`flex-1 overflow-y-auto px-8 py-8 ${SCROLL_CLS}`}>
-      <h2 className="font-['Amiri'] text-3xl font-bold gold-text mb-8">{l.progress}</h2>
+  const chartData = useMemo(() => {
+    const now = new Date();
+    const days: { date: string; fullDate: string; reviews: number; totalAyahs: number }[] = [];
 
-      <div className="grid grid-cols-3 gap-4 mb-10">
-        {[
-          { val: memorizedCount, label: l.ayahsMemorized, sub: l.outOf, color: "text-gold" },
-          { val: lowCount, label: l.needsReview, sub: l.below40, color: "text-red" },
-          { val: `${pct}%`, label: l.progressLabel, sub: `${memorizedSurahs.length} ${l.surahs}`, color: "text-green" },
-        ].map((s) => (
-          <div key={s.label} className="rounded-2xl bg-white/[0.02] border border-white/[0.04] p-6 text-center">
-            <div className={`font-['Amiri'] text-4xl font-bold leading-none ${s.color}`}>{s.val}</div>
-            <div className="text-sm text-muted mt-3">{s.label}</div>
-            <div className="text-[13px] text-faint mt-1">{s.sub}</div>
-          </div>
-        ))}
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const dayEnd = dayStart + 86400000;
+
+      const reviews = log.filter((e) => {
+        const t = new Date(e.timestamp).getTime();
+        return t >= dayStart && t < dayEnd;
+      }).length;
+
+      const ayahSet = new Set<string>();
+      for (const e of log) {
+        if (new Date(e.timestamp).getTime() < dayEnd) {
+          ayahSet.add(`${e.surahNumber}-${e.ayahNumber}`);
+        }
+      }
+
+      days.push({
+        date: `${d.getDate()}/${d.getMonth() + 1}`,
+        fullDate: `${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`,
+        reviews,
+        totalAyahs: ayahSet.size,
+      });
+    }
+
+    return days;
+  }, [log]);
+
+  const tabs: { id: StatsTab; label: string }[] = [
+    { id: "overview", label: l.overview },
+    { id: "charts", label: l.charts },
+    { id: "weakest", label: l.weakestAyahs },
+  ];
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="shrink-0 px-8 pt-6 pb-0">
+        <h2 className="font-['Amiri'] text-3xl font-bold gold-text mb-5">{l.progress}</h2>
+        <div className="flex gap-1 border-b border-white/[0.04] pb-0">
+          {tabs.map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`px-4 py-2 text-[13px] font-medium border-b-2 -mb-px cursor-pointer transition-colors bg-transparent ${tab === t.id ? "border-gold text-gold" : "border-transparent text-faint hover:text-cream"}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {weakest.length > 0 ? (
-        <>
-          <h3 className="text-sm font-semibold uppercase tracking-widest text-faint mb-4">{l.weakestAyahs}</h3>
-          <div className="flex flex-col gap-2">
-            {weakest.map((w) => {
-              const s = surahs.find((s) => s.number === w.surahNumber);
-              return (
-                <div key={`${w.surahNumber}-${w.ayahNumber}`} onClick={() => s && onSelectSurah(s)}
-                  className="flex items-center justify-between py-3 px-5 rounded-xl bg-red/[0.03] border border-red/[0.06] cursor-pointer hover:bg-red/[0.06] transition-colors">
-                  <span className="text-sm text-cream-dim">{s?.latin} — {l.ayah} {w.ayahNumber}</span>
-                  <RetentionBadge level={w.battery} />
-                </div>
-              );
-            })}
+      <div className={`flex-1 overflow-y-auto px-8 py-6 ${SCROLL_CLS}`}>
+        {tab === "overview" && (
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { val: memorizedCount, label: l.ayahsMemorized, sub: l.outOf, color: "text-gold" },
+              { val: lowCount, label: l.needsReview, sub: l.below40, color: "text-red" },
+              { val: `${pct}%`, label: l.progressLabel, sub: `${memorizedSurahs.length} ${l.surahs}`, color: "text-green" },
+            ].map((s) => (
+              <div key={s.label} className="rounded-2xl bg-white/[0.02] border border-white/[0.04] p-5 text-center">
+                <div className={`font-['Amiri'] text-4xl font-bold leading-none ${s.color}`}>{s.val}</div>
+                <div className="text-sm text-muted mt-3">{s.label}</div>
+                <div className="text-[13px] text-faint mt-1">{s.sub}</div>
+              </div>
+            ))}
           </div>
-        </>
-      ) : memorizedCount === 0 ? (
-        <div className="text-center py-10 text-base text-faint">{l.selectSurahToStart}</div>
-      ) : (
-        <div className="text-center py-10 text-base text-green">{l.allGood}</div>
+        )}
+
+        {tab === "charts" && (
+          chartData.some((d) => d.reviews > 0) ? (
+            <div className="space-y-6">
+              <ActivityHeatmap log={log} l={l} />
+              <DailyChart data={chartData} dataKey="reviews" label={l.dailyReviews} tooltipLabel="Muraja'ah" color="#6abf7b" />
+              <DailyChart data={chartData} dataKey="totalAyahs" label={l.totalAyahsTracked} tooltipLabel={l.ayahsMemorized} color="#d4a853" />
+            </div>
+          ) : (
+            <div className="text-center py-10 text-base text-faint">{l.selectSurahToStart}</div>
+          )
+        )}
+
+        {tab === "weakest" && (
+          weakest.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {weakest.map((w) => {
+                const s = surahs.find((s) => s.number === w.surahNumber);
+                return (
+                  <div key={`${w.surahNumber}-${w.ayahNumber}`} onClick={() => s && onSelectSurah(s)}
+                    className="flex items-center justify-between py-3 px-5 rounded-xl bg-red/[0.03] border border-red/[0.06] cursor-pointer hover:bg-red/[0.06] transition-colors">
+                    <span className="text-sm text-cream-dim">{s?.latin} — {l.ayah} {w.ayahNumber}</span>
+                    <RetentionBadge level={w.battery} />
+                  </div>
+                );
+              })}
+            </div>
+          ) : memorizedCount === 0 ? (
+            <div className="text-center py-10 text-base text-faint">{l.selectSurahToStart}</div>
+          ) : (
+            <div className="text-center py-10 text-base text-green">{l.allGood}</div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ActivityHeatmap({ log, l }: { log: ReviewEvent[]; l: ReturnType<typeof t> }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [weeks, setWeeks] = useState(0);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; date: string; count: string } | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const calc = () => {
+      const style = getComputedStyle(el);
+      const pad = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+      const w = el.clientWidth - pad - 33; // 30px day labels + 3px gap
+      setWeeks(Math.max(8, Math.floor(w / 15)));
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
+
+  const heatmap = useMemo(() => {
+    if (weeks === 0) return null;
+    const now = new Date();
+    const totalDays = weeks * 7;
+    const days: { date: Date; count: number }[] = [];
+
+    // Start from the most recent Sunday going back
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endSunday = new Date(today);
+    endSunday.setDate(endSunday.getDate() + (6 - endSunday.getDay())); // end of this week (Saturday)
+    const startDate = new Date(endSunday);
+    startDate.setDate(startDate.getDate() - totalDays + 1);
+
+    for (let i = 0; i < totalDays; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const dayStart = d.getTime();
+      const dayEnd = dayStart + 86400000;
+      const count = log.filter((e) => {
+        const t = new Date(e.timestamp).getTime();
+        return t >= dayStart && t < dayEnd;
+      }).length;
+      days.push({ date: d, count });
+    }
+
+    const maxCount = Math.max(...days.map((d) => d.count), 1);
+    return { days, maxCount, weeks };
+  }, [log, weeks]);
+
+  if (!heatmap) return <div ref={containerRef} className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4 h-32" />;
+
+  const getColor = (count: number, max: number) => {
+    if (count === 0) return "rgba(255,255,255,0.03)";
+    const ratio = count / max;
+    if (ratio <= 0.25) return "rgba(212,168,83,0.2)";
+    if (ratio <= 0.5) return "rgba(212,168,83,0.4)";
+    if (ratio <= 0.75) return "rgba(212,168,83,0.65)";
+    return "rgba(212,168,83,0.9)";
+  };
+
+  const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  // Build week columns
+  const weekCols: { date: Date; count: number }[][] = [];
+  for (let w = 0; w < heatmap.weeks; w++) {
+    weekCols.push(heatmap.days.slice(w * 7, (w + 1) * 7));
+  }
+
+  // Month labels — skip if too close to previous
+  const monthLabels: { label: string; col: number }[] = [];
+  let lastMonth = -1;
+  let lastCol = -3;
+  for (let w = 0; w < weekCols.length; w++) {
+    const firstDay = weekCols[w][0];
+    if (firstDay && firstDay.date.getMonth() !== lastMonth && (w - lastCol) >= 3) {
+      lastMonth = firstDay.date.getMonth();
+      lastCol = w;
+      monthLabels.push({ label: MONTHS_SHORT[lastMonth], col: w });
+    }
+  }
+
+  const today = new Date();
+  const todayTime = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+  const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
+
+  return (
+    <div ref={containerRef} className="relative rounded-xl bg-white/[0.02] border border-white/[0.04] p-4">
+      <div className="text-[12px] font-medium text-muted mb-3">{l.activityLabel}</div>
+
+      {/* Month labels row */}
+      <div className="flex gap-[3px] mb-1 ml-[30px]">
+        {weekCols.map((week, wi) => {
+          const ml = monthLabels.find((m) => m.col === wi);
+          return <div key={wi} className="w-[12px] text-[10px] text-faint leading-none whitespace-nowrap">{ml ? ml.label : ""}</div>;
+        })}
+      </div>
+
+      {/* Grid: 7 rows (days), N columns (weeks) with day labels */}
+      {[0, 1, 2, 3, 4, 5, 6].map((dayIdx) => (
+        <div key={dayIdx} className="flex gap-[3px] mb-[3px] items-center">
+          <div className="w-[27px] shrink-0 text-[10px] text-faint text-right pr-1">{DAY_LABELS[dayIdx]}</div>
+          {weekCols.map((week, wi) => {
+            const day = week[dayIdx];
+            if (!day) return <div key={wi} className="w-[12px] h-[12px]" />;
+            const dayTime = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate()).getTime();
+            const isFuture = dayTime > todayTime;
+            if (isFuture) return <div key={wi} className="w-[12px] h-[12px]" />;
+            const ds = `${day.date.getFullYear()}-${day.date.getMonth()}-${day.date.getDate()}`;
+            const isToday = ds === todayStr;
+            const tipDate = fmtDate(day.date);
+            const tipCount = `Muraja'ah : ${day.count}`;
+            return (
+              <div key={wi}
+                className={`w-[12px] h-[12px] rounded-[2px] shrink-0 cursor-default ${isToday ? "ring-1 ring-gold/50" : ""}`}
+                style={{ backgroundColor: getColor(day.count, heatmap.maxCount) }}
+                onMouseEnter={(ev) => {
+                  const rect = ev.currentTarget.getBoundingClientRect();
+                  const parent = containerRef.current?.getBoundingClientRect();
+                  if (parent) setTooltip({ x: rect.left - parent.left + 6, y: rect.top - parent.top - 48, date: tipDate, count: tipCount });
+                }}
+                onMouseLeave={() => setTooltip(null)}
+              />
+            );
+          })}
+        </div>
+      ))}
+
+      {/* Tooltip */}
+      {tooltip && (
+        <div className="absolute pointer-events-none z-10 py-2 px-4 rounded-lg bg-night-3 border border-gold/[0.15] shadow-[0_4px_16px_rgba(0,0,0,0.4)] whitespace-nowrap"
+          style={{ left: tooltip.x, top: tooltip.y, transform: "translateX(-50%)" }}>
+          <div className="text-[12px] text-cream">{tooltip.date}</div>
+          <div className="text-[12px] text-gold font-medium">{tooltip.count}</div>
+        </div>
       )}
+
+      {/* Legend */}
+      <div className="flex items-center gap-1.5 mt-3 justify-end">
+        <span className="text-[10px] text-faint">{l.lessLabel}</span>
+        {[0, 0.25, 0.5, 0.75, 1].map((r) => (
+          <div key={r} className="w-[10px] h-[10px] rounded-[2px]"
+            style={{ backgroundColor: getColor(r === 0 ? 0 : r * 4, 4) }} />
+        ))}
+        <span className="text-[10px] text-faint">{l.moreLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+function DailyChart({ data, dataKey, label, tooltipLabel, color }: {
+  data: { date: string; fullDate: string; reviews: number; totalAyahs: number }[];
+  dataKey: "reviews" | "totalAyahs"; label: string; tooltipLabel: string; color: string;
+}) {
+  return (
+    <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4">
+      <div className="text-[12px] font-medium text-muted mb-2">{label}</div>
+      <ResponsiveContainer width="100%" height={140}>
+        <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+          <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#7e7694" }} tickLine={false} axisLine={false}
+            interval={Math.floor(data.length / 6)} />
+          <YAxis tick={{ fontSize: 10, fill: "#7e7694" }} tickLine={false} axisLine={false} allowDecimals={false} />
+          <Tooltip
+            contentStyle={{ background: "#151230", border: "1px solid rgba(212,168,83,0.15)", borderRadius: 8, fontSize: 12, whiteSpace: "nowrap", padding: "8px 16px" }}
+            labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate || ""}
+            labelStyle={{ color: "#e8e0d0" }} itemStyle={{ color: "#d4a853" }}
+          />
+          <Line type="monotone" dataKey={dataKey} name={tooltipLabel} stroke={color} strokeWidth={2} dot={false}
+            activeDot={{ r: 4, fill: color, stroke: "#151230", strokeWidth: 2 }} />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
