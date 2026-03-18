@@ -1,52 +1,57 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Analytics02Icon, Book02Icon, Idea01Icon } from "@hugeicons/core-free-icons";
+import { Analytics02Icon, Book02Icon, Idea01Icon, Clock01Icon } from "@hugeicons/core-free-icons";
 import { surahs, Surah, TOTAL_AYAHS } from "@/data/surahs";
 import { RetentionBadge } from "@/components/BatteryIndicator";
-import { AyahProgress, calculateBattery, calculateSurahBattery, isActive } from "@/lib/battery";
-import { getAllProgress, getProgressForSurah, markAsMemorizing, reviewAyah, resetAyah } from "@/lib/store";
+import { AyahState, calculateBattery, calculateSurahBattery } from "@/lib/battery";
+import {
+  DerivedAyahState, getAllDerivedStates, getDerivedStatesForSurah,
+  addReview, undoLastEvent, deleteEvent,
+} from "@/lib/store";
 import { Lang, t } from "@/lib/i18n";
+import { timeAgo, nextReview } from "@/lib/time";
 
-type Page = "surahs" | "stats" | "about";
+type Page = "surahs" | "stats" | "history" | "about";
 
 const NAV_ITEMS: { id: Page; icon: typeof Analytics02Icon }[] = [
   { id: "surahs", icon: Book02Icon },
   { id: "stats", icon: Analytics02Icon },
+  { id: "history", icon: Clock01Icon },
   { id: "about", icon: Idea01Icon },
 ];
 
 const SCROLL_CLS = "[&::-webkit-scrollbar]:w-[2px] [&::-webkit-scrollbar-thumb]:bg-gold/[0.08] [&::-webkit-scrollbar-thumb]:rounded-full";
 
 export default function Home() {
-  const [progress, setProgress] = useState<AyahProgress[]>([]);
+  const [allStates, setAllStates] = useState<DerivedAyahState[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Surah | null>(null);
-  const [detailMap, setDetailMap] = useState<Map<number, AyahProgress>>(new Map());
+  const [surahStates, setSurahStates] = useState<Map<number, DerivedAyahState>>(new Map());
   const [page, setPage] = useState<Page>("surahs");
   const [lang, setLang] = useState<Lang>("en");
   const l = useMemo(() => t(lang), [lang]);
 
-  const reload = useCallback(() => setProgress(getAllProgress()), []);
+  const reload = useCallback(() => setAllStates(getAllDerivedStates()), []);
 
   const loadSurah = useCallback((surah: Surah) => {
     setPage("surahs");
     setSelected(surah);
-    const m = new Map<number, AyahProgress>();
-    getProgressForSurah(surah.number).forEach((p) => m.set(p.ayahNumber, p));
-    setDetailMap(m);
+    const m = new Map<number, DerivedAyahState>();
+    getDerivedStatesForSurah(surah.number).forEach((s) => m.set(s.ayahNumber, s));
+    setSurahStates(m);
   }, []);
 
   useEffect(() => { reload(); loadSurah(surahs[0]); }, [reload, loadSurah]);
 
-  const active = useMemo(() => progress.filter(isActive), [progress]);
+  const active = useMemo(() => allStates.filter((s) => s.reviewCount > 0), [allStates]);
   const memorizedCount = active.length;
-  const lowCount = useMemo(() => active.filter((p) => calculateBattery(p) < 40).length, [active]);
+  const lowCount = useMemo(() => active.filter((s) => calculateBattery(s) < 40).length, [active]);
   const pct = memorizedCount > 0 ? Math.round((memorizedCount / TOTAL_AYAHS) * 100) : 0;
 
   const memorizedSurahs = useMemo(() =>
-    surahs.filter((s) => active.some((p) => p.surahNumber === s.number)),
+    surahs.filter((s) => active.some((a) => a.surahNumber === s.number)),
     [active]
   );
 
@@ -55,12 +60,31 @@ export default function Home() {
     [search]
   );
 
-  const detailActive = useMemo(() =>
-    Array.from(detailMap.values()).filter(isActive),
-    [detailMap]
+  const surahActive = useMemo(() =>
+    Array.from(surahStates.values()).filter((s) => s.reviewCount > 0),
+    [surahStates]
   );
 
-  const navLabels: Record<Page, string> = { surahs: l.quran, stats: l.progress, about: l.guide };
+  // Snackbar
+  const [snackbar, setSnackbar] = useState<{ surahNumber: number; ayahNumber: number; message: string } | null>(null);
+  const snackbarTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSnackbar = useCallback((surahNumber: number, ayahNumber: number, surahName: string) => {
+    if (snackbarTimer.current) clearTimeout(snackbarTimer.current);
+    setSnackbar({ surahNumber, ayahNumber, message: `${surahName} ${l.ayah} ${ayahNumber}` });
+    snackbarTimer.current = setTimeout(() => setSnackbar(null), 5000);
+  }, [l]);
+
+  const handleUndo = useCallback(() => {
+    if (!snackbar) return;
+    undoLastEvent(snackbar.surahNumber, snackbar.ayahNumber);
+    if (selected) loadSurah(selected);
+    reload();
+    setSnackbar(null);
+    if (snackbarTimer.current) clearTimeout(snackbarTimer.current);
+  }, [snackbar, selected, loadSurah, reload]);
+
+  const navLabels: Record<Page, string> = { surahs: l.quran, stats: l.progress, history: l.history, about: l.guide };
 
   return (
     <div className="relative z-10 w-[92vw] max-w-[920px] flex flex-col items-center">
@@ -102,7 +126,7 @@ export default function Home() {
 
         <div className={`flex-1 overflow-y-auto px-3 pb-3 ${SCROLL_CLS}`}>
           {filtered.map((s) => {
-            const sp = active.filter((p) => p.surahNumber === s.number);
+            const sp = active.filter((a) => a.surahNumber === s.number);
             const has = sp.length > 0;
             const isSel = selected?.number === s.number;
             return (
@@ -122,18 +146,31 @@ export default function Home() {
       {/* ═══ MAIN ═══ */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {page === "surahs" && selected ? (
-          <SurahDetail surah={selected} detailActive={detailActive} detailMap={detailMap} l={l} lang={lang}
-            onReview={(n) => { reviewAyah(selected.number, n); loadSurah(selected); reload(); }}
-            onMemorize={(n) => { markAsMemorizing(selected.number, n); loadSurah(selected); reload(); }}
-            onUndo={(n) => { resetAyah(selected.number, n); loadSurah(selected); reload(); }}
+          <SurahDetail surah={selected} surahActive={surahActive} surahStates={surahStates} l={l} lang={lang}
+            onReview={(n) => { addReview(selected.number, n); loadSurah(selected); reload(); showSnackbar(selected.number, n, selected.latin); }}
           />
         ) : page === "stats" ? (
           <StatsPage l={l} memorizedCount={memorizedCount} lowCount={lowCount} pct={pct}
             memorizedSurahs={memorizedSurahs} active={active} onSelectSurah={loadSurah} />
+        ) : page === "history" ? (
+          <HistoryPage l={l} lang={lang} allStates={allStates}
+            onDeleteEvent={(s, a, ts) => { deleteEvent(s, a, ts); reload(); if (selected) loadSurah(selected); }}
+            onSelectSurah={loadSurah} />
         ) : page === "about" ? (
           <GuidePage l={l} lang={lang} />
         ) : (
           <div className="flex-1 flex items-center justify-center text-sm text-faint">{l.selectSurah}</div>
+        )}
+
+        {/* ═══ SNACKBAR ═══ */}
+        {snackbar && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 py-2.5 px-5 rounded-xl bg-night-3 border border-white/[0.08] shadow-[0_4px_24px_rgba(0,0,0,0.4)] animate-[slideUp_0.2s_ease-out]">
+            <span className="text-sm text-cream">{snackbar.message} — {l.reviewed}</span>
+            <button onClick={handleUndo}
+              className="px-3 py-1 text-sm font-semibold text-gold bg-gold/[0.08] rounded-lg cursor-pointer border-none hover:bg-gold/[0.15] transition-colors">
+              {l.undo}
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -144,12 +181,21 @@ export default function Home() {
   );
 }
 
-function SurahDetail({ surah, detailActive, detailMap, l, lang, onReview, onMemorize, onUndo }: {
-  surah: Surah; detailActive: AyahProgress[]; detailMap: Map<number, AyahProgress>;
+function SurahDetail({ surah, surahActive, surahStates, l, lang, onReview }: {
+  surah: Surah; surahActive: DerivedAyahState[]; surahStates: Map<number, DerivedAyahState>;
   l: ReturnType<typeof t>; lang: Lang;
-  onReview: (n: number) => void; onMemorize: (n: number) => void; onUndo: (n: number) => void;
+  onReview: (n: number) => void;
 }) {
-  const surahBattery = detailActive.length > 0 ? calculateSurahBattery(detailActive) : -1;
+  const [lastClickTime, setLastClickTime] = useState(0);
+  const DEBOUNCE_MS = 1500;
+
+  const handleReview = (n: number) => {
+    const now = Date.now();
+    if (now - lastClickTime < DEBOUNCE_MS) return;
+    setLastClickTime(now);
+    onReview(n);
+  };
+  const surahBattery = surahActive.length > 0 ? calculateSurahBattery(surahActive) : -1;
 
   return (
     <>
@@ -157,7 +203,7 @@ function SurahDetail({ surah, detailActive, detailMap, l, lang, onReview, onMemo
         <div>
           <h1 className="font-['Amiri'] text-3xl font-bold m-0 gold-text">{surah.latin}</h1>
           <div className="text-sm text-muted mt-1">{l.meaning(surah)} · {surah.ayahCount} {l.ayat} · {surah.type === "makkiyah" ? "Makkiyah" : "Madaniyah"}</div>
-          {detailActive.length > 0 && <div className="text-[13px] text-faint mt-2">{l.ofAyahsTracked(detailActive.length, surah.ayahCount)}</div>}
+          {surahActive.length > 0 && <div className="text-[13px] text-faint mt-2">{l.ofAyahsTracked(surahActive.length, surah.ayahCount)}</div>}
         </div>
         <div className="text-right shrink-0">
           <div className="font-['Noto_Naskh_Arabic'] text-4xl font-semibold text-gold leading-snug" dir="rtl">{surah.name}</div>
@@ -167,32 +213,27 @@ function SurahDetail({ surah, detailActive, detailMap, l, lang, onReview, onMemo
 
       <div className={`flex-1 overflow-y-auto px-6 py-3 ${SCROLL_CLS}`}>
         {Array.from({ length: surah.ayahCount }, (_, i) => i + 1).map((n) => {
-          const p = detailMap.get(n);
-          const active = p && isActive(p);
-          const batt = p ? calculateBattery(p) : 0;
+          const state = surahStates.get(n);
+          const tracked = state && state.reviewCount > 0;
+          const batt = state ? calculateBattery(state) : 0;
+          const next = state ? nextReview(state, lang) : "";
+          const isReady = next === l.ready;
           return (
-            <div key={n} className={`group flex items-center gap-4 py-3 px-4 rounded-xl transition-colors hover:bg-white/[0.012] ${!active ? "opacity-35" : ""}`}>
-              <div className={`w-9 h-9 flex items-center justify-center text-sm font-semibold rounded-lg shrink-0 ${active ? "bg-gold/[0.05] text-gold-dim" : "bg-white/[0.025] text-faint"}`}>{n}</div>
-              <div className="flex-1 min-w-0 flex items-center gap-3">
-                {active ? (
-                  <><RetentionBadge level={batt} /><span className="text-[13px] text-faint">{p!.reviewCount}x</span></>
+            <div key={n} className={`flex items-center gap-4 py-3 px-4 rounded-xl transition-colors hover:bg-white/[0.012] ${!tracked ? "opacity-35" : ""}`}>
+              <div className={`w-9 h-9 flex items-center justify-center text-sm font-semibold rounded-lg shrink-0 ${tracked ? "bg-gold/[0.05] text-gold-dim" : "bg-white/[0.025] text-faint"}`}>{n}</div>
+              <div className="flex-1 min-w-0 flex items-center gap-3 flex-wrap">
+                {tracked ? (
+                  <>
+                    <RetentionBadge level={batt} />
+                    <span className="text-[12px] text-ghost">{timeAgo(state!.lastReviewedAt!, lang)}</span>
+                    <span className={`text-[12px] font-medium ${isReady ? "text-gold" : "text-ghost"}`}>{next}</span>
+                  </>
                 ) : (
                   <span className="text-sm text-ghost">{l.notMemorized}</span>
                 )}
               </div>
-              <div className="shrink-0 flex items-center gap-2">
-                {active ? (
-                  <>
-                    <button onClick={() => onReview(n)}
-                      className="py-2 px-5 text-sm font-medium rounded-lg bg-green/[0.06] border border-green/[0.1] text-green cursor-pointer hover:bg-green/[0.13] transition-colors">{l.review}</button>
-                    <button onClick={() => onUndo(n)}
-                      className="text-xs text-red bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:underline transition-opacity p-1 font-['Outfit']">{l.undo}</button>
-                  </>
-                ) : (
-                  <button onClick={() => onMemorize(n)}
-                    className="py-2 px-5 text-sm font-medium rounded-lg bg-gold/[0.04] border border-gold/[0.08] text-gold-soft cursor-pointer hover:bg-gold/[0.1] transition-colors">{l.memorized}</button>
-                )}
-              </div>
+              <button onClick={() => handleReview(n)}
+                className="shrink-0 h-8 px-3 flex items-center justify-center text-sm font-medium rounded-lg bg-green/[0.06] border border-green/[0.1] text-green cursor-pointer hover:bg-green/[0.13] transition-colors">{tracked ? l.reviewBtn : l.start}</button>
             </div>
           );
         })}
@@ -203,12 +244,12 @@ function SurahDetail({ surah, detailActive, detailMap, l, lang, onReview, onMemo
 
 function StatsPage({ l, memorizedCount, lowCount, pct, memorizedSurahs, active, onSelectSurah }: {
   l: ReturnType<typeof t>; memorizedCount: number; lowCount: number; pct: number;
-  memorizedSurahs: Surah[]; active: AyahProgress[]; onSelectSurah: (s: Surah) => void;
+  memorizedSurahs: Surah[]; active: DerivedAyahState[]; onSelectSurah: (s: Surah) => void;
 }) {
   const weakest = useMemo(() =>
     [...active]
-      .map((p) => ({ ...p, battery: calculateBattery(p) }))
-      .filter((p) => p.battery < 60)
+      .map((s) => ({ ...s, battery: calculateBattery(s) }))
+      .filter((s) => s.battery < 60)
       .sort((a, b) => a.battery - b.battery)
       .slice(0, 10),
     [active]
@@ -252,6 +293,52 @@ function StatsPage({ l, memorizedCount, lowCount, pct, memorizedSurahs, active, 
         <div className="text-center py-10 text-base text-faint">{l.selectSurahToStart}</div>
       ) : (
         <div className="text-center py-10 text-base text-green">{l.allGood}</div>
+      )}
+    </div>
+  );
+}
+
+function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
+  l: ReturnType<typeof t>; lang: Lang; allStates: DerivedAyahState[];
+  onDeleteEvent: (surahNumber: number, ayahNumber: number, timestamp: string) => void;
+  onSelectSurah: (s: Surah) => void;
+}) {
+  // Flatten all events from all states, sorted newest first
+  const allEvents = useMemo(() => {
+    const events: { surahNumber: number; ayahNumber: number; timestamp: string }[] = [];
+    for (const state of allStates) {
+      for (const event of state.events) {
+        events.push(event);
+      }
+    }
+    return events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [allStates]);
+
+  return (
+    <div className={`flex-1 overflow-y-auto px-8 py-8 ${SCROLL_CLS}`}>
+      <h2 className="font-['Amiri'] text-3xl font-bold gold-text mb-6">{l.history}</h2>
+
+      {allEvents.length === 0 ? (
+        <div className="text-center py-10 text-base text-faint">{l.noHistory}</div>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {allEvents.map((e) => {
+            const s = surahs.find((s) => s.number === e.surahNumber);
+            return (
+              <div key={`${e.surahNumber}-${e.ayahNumber}-${e.timestamp}`}
+                className="flex items-center gap-4 py-3 px-4 rounded-xl hover:bg-white/[0.012] transition-colors">
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => s && onSelectSurah(s)}>
+                  <div className="text-sm font-medium text-cream">{s?.latin} — {l.ayah} {e.ayahNumber}</div>
+                  <div className="text-[12px] text-ghost mt-0.5">{timeAgo(e.timestamp, lang)}</div>
+                </div>
+                <button onClick={() => onDeleteEvent(e.surahNumber, e.ayahNumber, e.timestamp)}
+                  className="px-2 h-7 text-xs font-medium rounded-lg bg-red/[0.06] border border-red/[0.1] text-red cursor-pointer hover:bg-red/[0.13] transition-colors">
+                  {l.deleteEntry}
+                </button>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

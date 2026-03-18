@@ -1,37 +1,19 @@
 /**
- * Retention calculation based on Ebbinghaus forgetting curve.
+ * Retention calculation based on Ebbinghaus forgetting curve + spaced repetition.
  *
- * Formula: retention = 100 * e^(-t / stability)
- *
- * - t = elapsed hours since last review
- * - stability = how long until retention drops to ~37%, grows with each review
- *
- * Stability schedule (based on spaced repetition research):
- *   Review 1 → 24h (1 day)
- *   Review 2 → 72h (3 days)
- *   Review 3 → 168h (7 days)
- *   Review 4 → 336h (14 days)
- *   Review 5 → 720h (30 days)
- *   Review 6+ → keeps growing with multiplier 2.0
+ * State is derived from event log (event sourcing).
+ * Each review click is stored as a separate event.
+ * Count, stability, retention are calculated by replaying events.
  */
 
 const STABILITY_HOURS = [24, 72, 168, 336, 720];
 const STABILITY_MULTIPLIER = 2.0;
-const MEMORIZED_THRESHOLD = 5;
+export const MIN_INTERVAL_RATIO = 0.5;
 
-export type AyahStatus = "not_started" | "memorizing" | "memorized";
-
-export interface AyahProgress {
-  surahNumber: number;
-  ayahNumber: number;
-  status: AyahStatus;
+export interface AyahState {
   reviewCount: number;
   lastReviewedAt: string | null;
-  startedAt: string | null;
-}
-
-export function isActive(p: AyahProgress): boolean {
-  return p.status !== "not_started";
+  lastEffectiveAt: string | null;
 }
 
 export function getStability(reviewCount: number): number {
@@ -44,25 +26,20 @@ export function getStability(reviewCount: number): number {
   return lastStability * Math.pow(STABILITY_MULTIPLIER, extraReviews);
 }
 
-export function calculateBattery(progress: AyahProgress): number {
-  if (!isActive(progress) || !progress.lastReviewedAt) {
-    return 0;
-  }
+export function calculateBattery(state: AyahState): number {
+  if (!state.lastReviewedAt || state.reviewCount <= 0) return 0;
 
-  const now = Date.now();
-  const lastReview = new Date(progress.lastReviewedAt).getTime();
-  const elapsedHours = (now - lastReview) / (1000 * 60 * 60);
-
-  const stability = getStability(progress.reviewCount);
+  const elapsedHours = (Date.now() - new Date(state.lastReviewedAt).getTime()) / 3600000;
+  const stability = getStability(state.reviewCount);
   const retention = 100 * Math.exp(-elapsedHours / stability);
 
   return Math.round(Math.max(0, Math.min(100, retention)));
 }
 
-export function calculateSurahBattery(ayahProgresses: AyahProgress[]): number {
-  if (ayahProgresses.length === 0) return 0;
+export function calculateSurahBattery(states: AyahState[]): number {
+  if (states.length === 0) return 0;
 
-  const batteries = ayahProgresses.map((a) => calculateBattery(a));
+  const batteries = states.map((a) => calculateBattery(a));
 
   let weightedSum = 0;
   let totalWeight = 0;
@@ -74,5 +51,3 @@ export function calculateSurahBattery(ayahProgresses: AyahProgress[]): number {
 
   return Math.round(weightedSum / totalWeight);
 }
-
-export { MEMORIZED_THRESHOLD };
