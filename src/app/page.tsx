@@ -432,7 +432,6 @@ function ActivityHeatmap({ log, l }: { log: ReviewEvent[]; l: ReturnType<typeof 
   };
 
   const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   // Build week columns
   const weekCols: { date: Date; count: number }[][] = [];
