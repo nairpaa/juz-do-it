@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Analytics02Icon, Book02Icon, Idea01Icon, Clock01Icon, BookCheckIcon, AlertCircleIcon, Calendar01Icon, Layers01Icon } from "@hugeicons/core-free-icons";
+import { Analytics02Icon, Book02Icon, Idea01Icon, Clock01Icon, BookCheckIcon, AlertCircleIcon, Calendar01Icon, Layers01Icon, ArrowDown01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { surahs, Surah, TOTAL_AYAHS } from "@/data/surahs";
 import { RetentionBadge } from "@/components/BatteryIndicator";
 import { calculateBattery, calculateSurahBattery } from "@/lib/battery";
@@ -157,7 +157,7 @@ export default function Home() {
             onReview={(n) => { addReview(selected.number, n); loadSurah(selected); reload(); showSnackbar(selected.number, n, selected.latin); }}
           />
         ) : page === "stats" ? (
-          <StatsPage l={l} memorizedCount={memorizedCount} lowCount={lowCount} pct={pct}
+          <StatsPage l={l} lang={lang} memorizedCount={memorizedCount} lowCount={lowCount} pct={pct}
             memorizedSurahs={memorizedSurahs} active={active} log={log} onSelectSurah={loadSurah} />
         ) : page === "history" ? (
           <HistoryPage l={l} lang={lang} allStates={allStates}
@@ -251,20 +251,51 @@ function SurahDetail({ surah, surahActive, surahStates, l, lang, onReview }: {
 
 type StatsTab = "overview" | "charts" | "weakest";
 
-function StatsPage({ l, memorizedCount, lowCount, pct, memorizedSurahs, active, log, onSelectSurah }: {
-  l: ReturnType<typeof t>; memorizedCount: number; lowCount: number; pct: number;
+function StatsPage({ l, lang, memorizedCount, lowCount, pct, memorizedSurahs, active, log, onSelectSurah }: {
+  l: ReturnType<typeof t>; lang: Lang; memorizedCount: number; lowCount: number; pct: number;
   memorizedSurahs: Surah[]; active: DerivedAyahState[]; log: ReviewEvent[]; onSelectSurah: (s: Surah) => void;
 }) {
   const [tab, setTab] = useState<StatsTab>("overview");
 
-  const weakest = useMemo(() =>
-    [...active]
+  const weakestByJuz = useMemo(() => {
+    const weak = active
       .map((s) => ({ ...s, battery: calculateBattery(s) }))
-      .filter((s) => s.battery < 60)
-      .sort((a, b) => a.battery - b.battery)
-      .slice(0, 10),
-    [active]
-  );
+      .filter((s) => s.battery < 60);
+
+    type WeakItem = typeof weak[number];
+    type SurahGroup = { surah: Surah; items: WeakItem[] };
+    type JuzGroup = { juz: number; surahGroups: SurahGroup[] };
+
+    const result: JuzGroup[] = [];
+
+    for (const jb of JUZ_BOUNDARIES) {
+      const juzItems = weak.filter((w) => {
+        if (w.surahNumber < jb.start.surah || w.surahNumber > jb.end.surah) return false;
+        if (w.surahNumber === jb.start.surah && w.ayahNumber < jb.start.ayah) return false;
+        if (w.surahNumber === jb.end.surah && w.ayahNumber > jb.end.ayah) return false;
+        return true;
+      });
+
+      if (juzItems.length === 0) continue;
+
+      const surahMap = new Map<number, WeakItem[]>();
+      for (const item of juzItems) {
+        if (!surahMap.has(item.surahNumber)) surahMap.set(item.surahNumber, []);
+        surahMap.get(item.surahNumber)!.push(item);
+      }
+
+      const surahGroups: SurahGroup[] = [];
+      for (const [surahNum, items] of surahMap) {
+        const surah = surahs.find((s) => s.number === surahNum);
+        if (surah) surahGroups.push({ surah, items: items.sort((a, b) => a.battery - b.battery) });
+      }
+      surahGroups.sort((a, b) => a.surah.number - b.surah.number);
+
+      result.push({ juz: jb.juz, surahGroups });
+    }
+
+    return result;
+  }, [active]);
 
   const todayReviews = useMemo(() => {
     const now = new Date();
@@ -440,19 +471,8 @@ function StatsPage({ l, memorizedCount, lowCount, pct, memorizedSurahs, active, 
         )}
 
         {tab === "weakest" && (
-          weakest.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              {weakest.map((w) => {
-                const s = surahs.find((s) => s.number === w.surahNumber);
-                return (
-                  <div key={`${w.surahNumber}-${w.ayahNumber}`} onClick={() => s && onSelectSurah(s)}
-                    className="flex items-center justify-between py-3 px-5 rounded-xl bg-red/[0.03] border border-red/[0.06] cursor-pointer hover:bg-red/[0.06] transition-colors">
-                    <span className="text-sm text-cream-dim">{s?.latin} — {l.ayah} {w.ayahNumber}</span>
-                    <RetentionBadge level={w.battery} />
-                  </div>
-                );
-              })}
-            </div>
+          weakestByJuz.length > 0 ? (
+            <WeakestList weakestByJuz={weakestByJuz} l={l} lang={lang} onSelectSurah={onSelectSurah} />
           ) : memorizedCount === 0 ? (
             <div className="text-center py-10 text-base text-faint">{l.selectSurahToStart}</div>
           ) : (
@@ -460,6 +480,67 @@ function StatsPage({ l, memorizedCount, lowCount, pct, memorizedSurahs, active, 
           )
         )}
       </div>
+    </div>
+  );
+}
+
+function WeakestList({ weakestByJuz, l, lang, onSelectSurah }: {
+  weakestByJuz: { juz: number; surahGroups: { surah: Surah; items: { surahNumber: number; ayahNumber: number; battery: number; lastReviewedAt: string | null }[] }[] }[];
+  l: ReturnType<typeof t>; lang: Lang; onSelectSurah: (s: Surah) => void;
+}) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggle = (key: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-5">
+      {weakestByJuz.map((juzGroup) => (
+        <div key={juzGroup.juz}>
+          <div className="text-[12px] font-medium text-gold-dim mb-2">Juz {juzGroup.juz}</div>
+          <div className="flex flex-col gap-1">
+            {juzGroup.surahGroups.map((sg) => {
+              const key = `${juzGroup.juz}-${sg.surah.number}`;
+              const isOpen = expanded.has(key);
+              return (
+                <div key={key}>
+                  <button onClick={() => toggle(key)}
+                    className="w-full flex items-center gap-4 py-3 px-4 rounded-xl cursor-pointer transition-all duration-200 text-left hover:bg-white/[0.012] bg-transparent border-none">
+                    <div className={`w-9 h-9 flex items-center justify-center text-sm font-semibold rounded-lg shrink-0 ${isOpen ? "bg-gold/[0.1] text-gold" : "bg-red/[0.08] text-red"}`}>
+                      {sg.surah.number}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-sm font-semibold ${isOpen ? "text-gold-soft" : "text-cream"}`}>{sg.surah.latin}</span>
+                      <span className="text-[12px] text-red ml-2">{sg.items.length} {l.ayahs}</span>
+                    </div>
+                    <HugeiconsIcon icon={isOpen ? ArrowDown01Icon : ArrowRight01Icon} size={16} className={`shrink-0 transition-colors ${isOpen ? "text-gold" : "text-faint"}`} />
+                  </button>
+                  {isOpen && (
+                    <div className="mt-1 ml-5 mb-3">
+                      {sg.items.map((w) => (
+                        <div key={`${w.surahNumber}-${w.ayahNumber}`} onClick={() => onSelectSurah(sg.surah)}
+                          className="flex items-center gap-4 py-3 px-4 rounded-xl transition-colors hover:bg-white/[0.012] cursor-pointer">
+                          <div className="w-9 h-9 flex items-center justify-center text-sm font-semibold rounded-lg shrink-0 bg-gold/[0.05] text-gold-dim">{w.ayahNumber}</div>
+                          <div className="flex-1 min-w-0 flex items-center gap-3">
+                            <RetentionBadge level={w.battery} />
+                            {w.lastReviewedAt && <span className="text-[12px] text-ghost">{timeAgo(w.lastReviewedAt, lang)}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

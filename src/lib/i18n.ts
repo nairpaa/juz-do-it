@@ -44,6 +44,7 @@ export const t = (lang: Lang) => ({
   selectSurahToStart: lang === "en" ? "Select a surah to start memorizing" : "Pilih surah untuk mulai menghafal",
   allGood: lang === "en" ? "All ayahs in good retention" : "Semua ayat dalam kondisi baik",
   ayat: "ayat",
+  ayahs: lang === "en" ? "ayahs" : "ayat",
   ofAyahsTracked: (n: number, total: number) =>
     lang === "en" ? `${n} of ${total} ayahs tracked` : `${n} dari ${total} ayat dilacak`,
   notMemorized: lang === "en" ? "Not memorized" : "Belum dihafal",
