@@ -13,6 +13,12 @@ export const t = (lang: Lang) => ({
   noHistory: lang === "en" ? "No memorization history yet" : "Belum ada riwayat hafalan",
   reviewed: "muraja'ah",
   undo: lang === "en" ? "Undo" : "Batal",
+  cancel: lang === "en" ? "Cancel" : "Batal",
+  confirmDeleteTitle: lang === "en" ? "Delete this entry?" : "Hapus entri ini?",
+  confirmDeleteBody: (surahName: string, ayahNumber: number) =>
+    lang === "en"
+      ? `This will remove the muraja'ah record for ${surahName} Ayah ${ayahNumber}. Your retention data will be recalculated.`
+      : `Ini akan menghapus catatan muraja'ah untuk ${surahName} Ayat ${ayahNumber}. Data hafalan akan dihitung ulang.`,
   searchSurah: lang === "en" ? "Search surah..." : "Cari surah...",
   ayahsMemorized: lang === "en" ? "Ayahs Memorized" : "Ayat Dihafal",
   outOf: lang === "en" ? `out of ${TOTAL_FORMATTED.en}` : `dari ${TOTAL_FORMATTED.id}`,

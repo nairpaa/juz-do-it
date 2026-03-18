@@ -303,7 +303,8 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
   onDeleteEvent: (surahNumber: number, ayahNumber: number, timestamp: string) => void;
   onSelectSurah: (s: Surah) => void;
 }) {
-  // Flatten all events from all states, sorted newest first
+  const [confirm, setConfirm] = useState<{ surahNumber: number; ayahNumber: number; timestamp: string; surahName: string } | null>(null);
+
   const allEvents = useMemo(() => {
     const events: { surahNumber: number; ayahNumber: number; timestamp: string }[] = [];
     for (const state of allStates) {
@@ -331,13 +332,34 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
                   <div className="text-sm font-medium text-cream">{s?.latin} — {l.ayah} {e.ayahNumber}</div>
                   <div className="text-[12px] text-ghost mt-0.5">{timeAgo(e.timestamp, lang)}</div>
                 </div>
-                <button onClick={() => onDeleteEvent(e.surahNumber, e.ayahNumber, e.timestamp)}
+                <button onClick={() => setConfirm({ ...e, surahName: s?.latin || "" })}
                   className="px-2 h-7 text-xs font-medium rounded-lg bg-red/[0.06] border border-red/[0.1] text-red cursor-pointer hover:bg-red/[0.13] transition-colors">
                   {l.deleteEntry}
                 </button>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {confirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirm(null)}>
+          <div className="bg-night-2 border border-gold/[0.15] rounded-2xl p-6 max-w-sm mx-4 shadow-[0_8px_40px_rgba(0,0,0,0.6)]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-cream mb-2">{l.confirmDeleteTitle}</h3>
+            <p className="text-sm text-muted mb-5">
+              {l.confirmDeleteBody(confirm.surahName, confirm.ayahNumber)}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirm(null)}
+                className="px-3 h-8 text-sm font-medium text-cream-dim bg-white/[0.04] border border-white/[0.06] rounded-lg cursor-pointer hover:bg-white/[0.08] transition-colors">
+                {l.cancel}
+              </button>
+              <button onClick={() => { onDeleteEvent(confirm.surahNumber, confirm.ayahNumber, confirm.timestamp); setConfirm(null); }}
+                className="px-3 h-8 text-sm font-medium text-red bg-red/[0.06] border border-red/[0.1] rounded-lg cursor-pointer hover:bg-red/[0.13] transition-colors">
+                {l.deleteEntry}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
