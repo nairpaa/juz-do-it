@@ -195,6 +195,7 @@ function SurahDetail({ surah, surahActive, surahStates, l, lang, onReview }: {
   onReview: (n: number) => void;
 }) {
   const [lastClickTime, setLastClickTime] = useState(0);
+  const [filter, setFilter] = useState<"all" | "memorized">("all");
   const DEBOUNCE_MS = 1500;
 
   const handleReview = (n: number) => {
@@ -204,6 +205,12 @@ function SurahDetail({ surah, surahActive, surahStates, l, lang, onReview }: {
     onReview(n);
   };
   const surahBattery = surahActive.length > 0 ? calculateSurahBattery(surahActive) : -1;
+
+  const ayahNumbers = useMemo(() => {
+    const all = Array.from({ length: surah.ayahCount }, (_, i) => i + 1);
+    if (filter === "memorized") return all.filter((n) => surahStates.has(n) && surahStates.get(n)!.reviewCount > 0);
+    return all;
+  }, [surah.ayahCount, filter, surahStates]);
 
   return (
     <>
@@ -219,8 +226,24 @@ function SurahDetail({ surah, surahActive, surahStates, l, lang, onReview }: {
         </div>
       </div>
 
+      {/* Filter toggle */}
+      {surahActive.length > 0 && (
+        <div className="shrink-0 flex gap-1 px-6 pt-3 pb-1">
+          {(["all", "memorized"] as const).map((f) => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-lg border cursor-pointer transition-colors ${
+                filter === f
+                  ? "bg-gold/[0.1] border-gold/[0.2] text-gold"
+                  : "bg-transparent border-white/[0.04] text-faint hover:text-cream-dim hover:bg-white/[0.02]"
+              }`}>
+              {f === "all" ? l.all : l.memorizedOnly} {f === "memorized" && `(${surahActive.length})`}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className={`flex-1 overflow-y-auto px-6 py-3 ${SCROLL_CLS}`}>
-        {Array.from({ length: surah.ayahCount }, (_, i) => i + 1).map((n) => {
+        {ayahNumbers.map((n) => {
           const state = surahStates.get(n);
           const tracked = state && state.reviewCount > 0;
           const batt = state ? calculateBattery(state) : 0;

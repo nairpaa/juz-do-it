@@ -51,6 +51,8 @@ export const t = (lang: Lang) => ({
   ayahs: lang === "en" ? "ayahs" : "ayat",
   ofAyahsTracked: (n: number, total: number) =>
     lang === "en" ? `${n} of ${total} ayahs tracked` : `${n} dari ${total} ayat dilacak`,
+  all: lang === "en" ? "All" : "Semua",
+  memorizedOnly: lang === "en" ? "Memorized" : "Dihafal",
   notMemorized: lang === "en" ? "Not memorized" : "Belum dihafal",
   start: lang === "en" ? "Start" : "Mulai",
   reviewBtn: "Muraja'ah",
