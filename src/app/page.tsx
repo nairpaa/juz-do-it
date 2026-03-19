@@ -53,7 +53,11 @@ export default function Home() {
   const [surahStates, setSurahStates] = useState<Map<number, DerivedAyahState>>(new Map());
   const [page, setPage] = useState<Page>("surahs");
   const [statsTabInit, setStatsTabInit] = useState<string | undefined>(undefined);
-  const [lang, setLang] = useState<Lang>("en");
+  const [lang, setLangState] = useState<Lang>(() => {
+    if (typeof window === "undefined") return "en";
+    return (localStorage.getItem("juz-do-it-lang") as Lang) || "en";
+  });
+  const setLang = (l: Lang) => { setLangState(l); localStorage.setItem("juz-do-it-lang", l); };
   const l = useMemo(() => t(lang), [lang]);
 
   const [log, setLog] = useState<ReviewEvent[]>([]);
