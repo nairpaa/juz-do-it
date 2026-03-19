@@ -51,7 +51,27 @@ export default function Home() {
     setSurahStates(m);
   }, []);
 
-  useEffect(() => { reload(); loadSurah(surahs[0]); }, [reload, loadSurah]);
+  useEffect(() => {
+    const states = getAllDerivedStates();
+    setAllStates(states);
+    setLog(getLog());
+
+    // Auto-select surah with lowest retention, or Al-Fatihah if none tracked
+    const activeStates = states.filter((s) => s.reviewCount > 0);
+    if (activeStates.length > 0) {
+      let worstSurah = activeStates[0].surahNumber;
+      let worstBattery = calculateBattery(activeStates[0]);
+      for (const s of activeStates) {
+        const b = calculateBattery(s);
+        if (b < worstBattery) { worstBattery = b; worstSurah = s.surahNumber; }
+      }
+      const surah = surahs.find((s) => s.number === worstSurah);
+      if (surah) loadSurah(surah);
+      else loadSurah(surahs[0]);
+    } else {
+      loadSurah(surahs[0]);
+    }
+  }, [loadSurah]);
 
   const active = useMemo(() => allStates.filter((s) => s.reviewCount > 0), [allStates]);
   const memorizedCount = active.length;
