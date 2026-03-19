@@ -309,9 +309,8 @@ export default function Home() {
           <StatsPage l={l} lang={lang} memorizedCount={memorizedCount} lowCount={lowCount} pct={pct}
             memorizedSurahs={memorizedSurahs} active={active} log={log} onSelectSurah={loadSurah} initialTab={statsTabInit} />
         ) : page === "history" ? (
-          <HistoryPage l={l} lang={lang} allStates={allStates}
-            onDeleteEvent={(s, a, ts) => { deleteEvent(s, a, ts); reload(); if (selected) loadSurah(selected); }}
-            onSelectSurah={loadSurah} />
+          <HistoryPage l={l} allStates={allStates}
+            onDeleteEvent={(s, a, ts) => { deleteEvent(s, a, ts); reload(); if (selected) loadSurah(selected); }} />
         ) : page === "guide" ? (
           <GuidePage l={l} lang={lang} />
         ) : (
@@ -897,10 +896,9 @@ function DailyChart({ data, dataKey, label, tooltipLabel, color }: {
   );
 }
 
-function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
-  l: ReturnType<typeof t>; lang: Lang; allStates: DerivedAyahState[];
+function HistoryPage({ l, allStates, onDeleteEvent }: {
+  l: ReturnType<typeof t>; allStates: DerivedAyahState[];
   onDeleteEvent: (surahNumber: number, ayahNumber: number, timestamp: string) => void;
-  onSelectSurah: (s: Surah) => void;
 }) {
   const [confirm, setConfirm] = useState<{ surahNumber: number; ayahNumber: number; timestamp: string; surahName: string } | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -1191,6 +1189,11 @@ function GuidePage({ l, lang }: { l: ReturnType<typeof t>; lang: Lang }) {
         <div>
           <h3 className="font-['Amiri'] text-lg font-bold text-cream mb-2">{l.guideWhatTitle}</h3>
           <p>{l.guideWhatBody}</p>
+        </div>
+
+        <div className="rounded-xl bg-gold/[0.04] border border-gold/[0.12] p-5">
+          <h3 className="font-['Amiri'] text-lg font-bold text-gold mb-2 flex items-center gap-2"><HugeiconsIcon icon={AlertCircleIcon} size={18} className="text-gold" /> {l.guideWarningTitle}</h3>
+          <p className="text-[14px] leading-relaxed text-cream-dim">{l.guideWarningBody}</p>
         </div>
 
         <div>

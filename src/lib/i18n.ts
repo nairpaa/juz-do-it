@@ -86,6 +86,10 @@ export const t = (lang: Lang) => ({
 
   // Guide page
   guideSubtitle: lang === "en" ? "Your Quran memorization companion" : "Teman hafalan Al-Quran Anda",
+  guideWarningTitle: lang === "en" ? "Before you start" : "Sebelum mulai",
+  guideWarningBody: lang === "en"
+    ? "Make sure you have learned proper tajweed (Quran recitation rules) before memorizing. Memorizing with incorrect pronunciation means you'll have to relearn everything later — that's double the work. Always have a teacher or a study partner who can check your recitation. JuzDoIt is a tracking tool, not a replacement for a teacher."
+    : "Pastikan Anda sudah belajar tajwid (aturan membaca Al-Quran) dengan benar sebelum menghafal. Menghafal dengan bacaan yang salah berarti harus belajar ulang semuanya nanti — itu kerja dua kali. Selalu punya guru atau rekan yang bisa memeriksa bacaan Anda. JuzDoIt adalah alat bantu pelacakan, bukan pengganti guru.",
   guideWhatTitle: lang === "en" ? "What is JuzDoIt?" : "Apa itu JuzDoIt?",
   guideWhatBody: lang === "en"
     ? "When we memorize the Quran, the hardest part isn't memorizing — it's keeping what we've memorized. Without regular review, our memory fades. JuzDoIt helps you know exactly which ayahs are getting weak and need to be reviewed, so nothing is forgotten."
