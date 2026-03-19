@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Analytics02Icon, Book02Icon, Idea01Icon, Clock01Icon, BookCheckIcon, AlertCircleIcon, Calendar01Icon, Layers01Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowLeft01Icon, Cancel01Icon, Menu01Icon } from "@hugeicons/core-free-icons";
+import { Analytics02Icon, Book02Icon, Idea01Icon, Clock01Icon, BookCheckIcon, AlertCircleIcon, Calendar01Icon, Layers01Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowLeft01Icon, Cancel01Icon, Menu01Icon, Download04Icon, Upload04Icon } from "@hugeicons/core-free-icons";
 import { surahs, Surah, TOTAL_AYAHS } from "@/data/surahs";
 import { RetentionBadge } from "@/components/BatteryIndicator";
 import { calculateBattery, calculateSurahBattery } from "@/lib/battery";
 import { JUZ_BOUNDARIES } from "@/lib/quran-metadata";
 import {
   DerivedAyahState, ReviewEvent, getAllDerivedStates, getDerivedStatesForSurah,
-  addReview, undoLastEvent, deleteEvent, getLog,
+  addReview, undoLastEvent, deleteEvent, getLog, exportLog, importLog,
 } from "@/lib/store";
 import { Lang, t } from "@/lib/i18n";
 import { timeAgo, nextReview } from "@/lib/time";
@@ -265,6 +265,37 @@ export default function Home() {
               </div>
             );
           })}
+        </div>
+
+        {/* Export / Import */}
+        <div className="shrink-0 border-t border-white/[0.04] px-4 py-3 flex items-center gap-2">
+          <button onClick={() => {
+            const data = exportLog();
+            const blob = new Blob([data], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = `juz-do-it-backup-${new Date().toISOString().slice(0, 10)}.json`;
+            a.click(); URL.revokeObjectURL(url);
+          }} title={l.exportData}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted rounded-lg bg-white/[0.02] border border-white/[0.04] cursor-pointer hover:text-cream hover:bg-white/[0.04] transition-colors">
+            <HugeiconsIcon icon={Download04Icon} size={14} /> {l.exportData}
+          </button>
+          <label title={l.importData}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted rounded-lg bg-white/[0.02] border border-white/[0.04] cursor-pointer hover:text-cream hover:bg-white/[0.04] transition-colors">
+            <HugeiconsIcon icon={Upload04Icon} size={14} /> {l.importData}
+            <input type="file" accept=".json" className="hidden" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                const ok = importLog(reader.result as string);
+                if (ok) { reload(); if (selected) loadSurah(selected); }
+                else alert(l.importFailed);
+              };
+              reader.readAsText(file);
+              e.target.value = "";
+            }} />
+          </label>
         </div>
       </div>
 

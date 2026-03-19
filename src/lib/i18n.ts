@@ -76,6 +76,9 @@ export const t = (lang: Lang) => ({
   dayHeaders: lang === "en"
     ? ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
     : ["Mi", "Se", "Se", "Ra", "Ka", "Ju", "Sa"],
+  exportData: lang === "en" ? "Export" : "Ekspor",
+  importData: lang === "en" ? "Import" : "Impor",
+  importFailed: lang === "en" ? "Invalid file format" : "Format file tidak valid",
   selectSurah: lang === "en" ? "Select a surah" : "Pilih surah",
   totalAyahs: TOTAL_AYAHS,
   meaning: (s: { meaningId: string; meaningEn: string }) =>

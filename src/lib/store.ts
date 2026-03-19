@@ -25,6 +25,24 @@ function saveLog(log: ReviewEvent[]): void {
   localStorage.setItem(LOG_KEY, JSON.stringify(log));
 }
 
+export function exportLog(): string {
+  return JSON.stringify(getLog(), null, 2);
+}
+
+export function importLog(json: string): boolean {
+  try {
+    const data = JSON.parse(json);
+    if (!Array.isArray(data)) return false;
+    for (const e of data) {
+      if (!e.surahNumber || !e.ayahNumber || !e.timestamp) return false;
+    }
+    saveLog(data);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function addReview(surahNumber: number, ayahNumber: number): void {
   const log = getLog();
   log.push({ surahNumber, ayahNumber, timestamp: new Date().toISOString() });
