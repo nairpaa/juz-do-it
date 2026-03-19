@@ -15,20 +15,37 @@ import { Lang, t } from "@/lib/i18n";
 import { timeAgo, nextReview } from "@/lib/time";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
-const MONTHS_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const fmtDate = (d: Date) => `${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
+const fmtDate = (d: Date, months: string[]) => `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 
-type Page = "surahs" | "stats" | "history" | "about";
+type Page = "surahs" | "stats" | "history" | "guide";
 
 const NAV_ITEMS: { id: Page; icon: typeof Analytics02Icon }[] = [
   { id: "surahs", icon: Book02Icon },
   { id: "stats", icon: Analytics02Icon },
   { id: "history", icon: Clock01Icon },
-  { id: "about", icon: Idea01Icon },
+  { id: "guide", icon: Idea01Icon },
 ];
 
 const SCROLL_CLS = "[&::-webkit-scrollbar]:w-[2px] [&::-webkit-scrollbar-thumb]:bg-gold/[0.08] [&::-webkit-scrollbar-thumb]:rounded-full";
+
+function parseHash(): { page: Page; surahNumber?: number; statsTab?: string } {
+  if (typeof window === "undefined") return { page: "surahs" };
+  const hash = window.location.hash.replace("#", "");
+  if (!hash) return { page: "surahs" };
+  const parts = hash.split("/");
+  const page = (["surahs", "stats", "history", "guide"].includes(parts[0]) ? parts[0] : "surahs") as Page;
+  if (page === "surahs" && parts[1]) return { page, surahNumber: parseInt(parts[1]) };
+  if (page === "stats" && parts[1]) return { page, statsTab: parts[1] };
+  return { page };
+}
+
+function setHash(page: Page, surahNumber?: number, statsTab?: string) {
+  let hash: string = page;
+  if (page === "surahs" && surahNumber) hash = `surahs/${surahNumber}`;
+  else if (page === "stats" && statsTab) hash = `stats/${statsTab}`;
+  if (window.location.hash !== `#${hash}`) window.history.replaceState(null, "", `#${hash}`);
+}
 
 export default function Home() {
   const [allStates, setAllStates] = useState<DerivedAyahState[]>([]);
@@ -36,6 +53,7 @@ export default function Home() {
   const [selected, setSelected] = useState<Surah | null>(null);
   const [surahStates, setSurahStates] = useState<Map<number, DerivedAyahState>>(new Map());
   const [page, setPage] = useState<Page>("surahs");
+  const [statsTabInit, setStatsTabInit] = useState<string | undefined>(undefined);
   const [lang, setLang] = useState<Lang>("en");
   const l = useMemo(() => t(lang), [lang]);
 
@@ -43,20 +61,42 @@ export default function Home() {
 
   const reload = useCallback(() => { setAllStates(getAllDerivedStates()); setLog(getLog()); }, []);
 
-  const loadSurah = useCallback((surah: Surah) => {
+  const loadSurah = useCallback((surah: Surah, updateHash = true) => {
     setPage("surahs");
     setSelected(surah);
     const m = new Map<number, DerivedAyahState>();
     getDerivedStatesForSurah(surah.number).forEach((s) => m.set(s.ayahNumber, s));
     setSurahStates(m);
+    if (updateHash) setHash("surahs", surah.number);
   }, []);
 
+  const navigateTo = useCallback((p: Page, statsTab?: string) => {
+    setPage(p);
+    if (p !== "surahs") setSelected(null);
+    setHash(p, undefined, statsTab);
+  }, []);
+
+  // Initial load: restore from hash or auto-select
   useEffect(() => {
     const states = getAllDerivedStates();
     setAllStates(states);
     setLog(getLog());
 
-    // Auto-select surah with lowest retention, or Al-Fatihah if none tracked
+    const { page: hashPage, surahNumber, statsTab } = parseHash();
+
+    if (hashPage === "surahs" && surahNumber) {
+      const surah = surahs.find((s) => s.number === surahNumber);
+      if (surah) { loadSurah(surah, false); return; }
+    }
+
+    if (hashPage !== "surahs") {
+      setPage(hashPage);
+      if (statsTab) setStatsTabInit(statsTab);
+      setHash(hashPage, undefined, statsTab);
+      return;
+    }
+
+    // No hash or invalid: auto-select surah with lowest retention
     const activeStates = states.filter((s) => s.reviewCount > 0);
     if (activeStates.length > 0) {
       let worstSurah = activeStates[0].surahNumber;
@@ -71,6 +111,22 @@ export default function Home() {
     } else {
       loadSurah(surahs[0]);
     }
+  }, [loadSurah]);
+
+  // Listen for browser back/forward
+  useEffect(() => {
+    const onHashChange = () => {
+      const { page: hashPage, surahNumber } = parseHash();
+      if (hashPage === "surahs" && surahNumber) {
+        const surah = surahs.find((s) => s.number === surahNumber);
+        if (surah) loadSurah(surah, false);
+      } else {
+        setPage(hashPage);
+        if (hashPage !== "surahs") setSelected(null);
+      }
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
   }, [loadSurah]);
 
   const active = useMemo(() => allStates.filter((s) => s.reviewCount > 0), [allStates]);
@@ -112,7 +168,7 @@ export default function Home() {
     if (snackbarTimer.current) clearTimeout(snackbarTimer.current);
   }, [snackbar, selected, loadSurah, reload]);
 
-  const navLabels: Record<Page, string> = { surahs: l.quran, stats: l.progress, history: l.history, about: l.guide };
+  const navLabels: Record<Page, string> = { surahs: l.quran, stats: l.progress, history: l.history, guide: l.guide };
 
   return (
     <div className="relative z-10 w-[92vw] max-w-[920px] flex flex-col items-center">
@@ -137,7 +193,7 @@ export default function Home() {
         <nav className="shrink-0 px-3 mb-3 flex flex-col gap-0.5">
           {NAV_ITEMS.map((item) => (
             <div key={item.id}
-              onClick={() => { setPage(item.id); if (item.id !== "surahs") setSelected(null); }}
+              onClick={() => navigateTo(item.id)}
               className={`flex items-center gap-2.5 py-2 px-3 rounded-lg cursor-pointer transition-all text-[13px] font-medium ${page === item.id ? "text-gold bg-gold/[0.06] border-l-2 border-gold" : "text-faint hover:text-cream hover:bg-white/[0.02] border-l-2 border-transparent"}`}>
               <HugeiconsIcon icon={item.icon} size={16} color="currentColor" strokeWidth={1.5} />
               {navLabels[item.id]}
@@ -179,12 +235,12 @@ export default function Home() {
           />
         ) : page === "stats" ? (
           <StatsPage l={l} lang={lang} memorizedCount={memorizedCount} lowCount={lowCount} pct={pct}
-            memorizedSurahs={memorizedSurahs} active={active} log={log} onSelectSurah={loadSurah} />
+            memorizedSurahs={memorizedSurahs} active={active} log={log} onSelectSurah={loadSurah} initialTab={statsTabInit} />
         ) : page === "history" ? (
           <HistoryPage l={l} lang={lang} allStates={allStates}
             onDeleteEvent={(s, a, ts) => { deleteEvent(s, a, ts); reload(); if (selected) loadSurah(selected); }}
             onSelectSurah={loadSurah} />
-        ) : page === "about" ? (
+        ) : page === "guide" ? (
           <GuidePage l={l} lang={lang} />
         ) : (
           <div className="flex-1 flex items-center justify-center text-sm text-faint">{l.selectSurah}</div>
@@ -237,7 +293,7 @@ function SurahDetail({ surah, surahActive, surahStates, l, lang, onReview }: {
       <div className="shrink-0 flex items-start justify-between gap-5 px-8 py-6 border-b border-white/[0.04]">
         <div>
           <h1 className="font-['Amiri'] text-3xl font-bold m-0 gold-text">{surah.latin}</h1>
-          <div className="text-sm text-muted mt-1">{l.meaning(surah)} · {surah.ayahCount} {l.ayat} · {surah.type === "makkiyah" ? "Makkiyah" : "Madaniyah"}</div>
+          <div className="text-sm text-muted mt-1">{l.meaning(surah)} · {surah.ayahCount} {l.ayat} · {surah.type === "makkiyah" ? l.makkiyah : l.madaniyah}</div>
           {surahActive.length > 0 && <div className="text-[13px] text-faint mt-2">{l.ofAyahsTracked(surahActive.length, surah.ayahCount)}</div>}
         </div>
         <div className="text-right shrink-0">
@@ -295,11 +351,17 @@ function SurahDetail({ surah, surahActive, surahStates, l, lang, onReview }: {
 
 type StatsTab = "overview" | "charts" | "weakest";
 
-function StatsPage({ l, lang, memorizedCount, lowCount, pct, memorizedSurahs, active, log, onSelectSurah }: {
+function StatsPage({ l, lang, memorizedCount, lowCount, pct, memorizedSurahs, active, log, onSelectSurah, initialTab }: {
   l: ReturnType<typeof t>; lang: Lang; memorizedCount: number; lowCount: number; pct: number;
   memorizedSurahs: Surah[]; active: DerivedAyahState[]; log: ReviewEvent[]; onSelectSurah: (s: Surah) => void;
+  initialTab?: string;
 }) {
-  const [tab, setTab] = useState<StatsTab>("overview");
+  const [tab, setTab] = useState<StatsTab>((["overview", "charts", "weakest"].includes(initialTab || "") ? initialTab : "overview") as StatsTab);
+
+  const changeTab = (t: StatsTab) => {
+    setTab(t);
+    setHash("stats", undefined, t);
+  };
 
   const weakestByJuz = useMemo(() => {
     const weak = active
@@ -418,7 +480,7 @@ function StatsPage({ l, lang, memorizedCount, lowCount, pct, memorizedSurahs, ac
 
       days.push({
         date: `${d.getDate()}/${d.getMonth() + 1}`,
-        fullDate: `${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`,
+        fullDate: fmtDate(d, l.months),
         reviews,
         totalAyahs: ayahSet.size,
       });
@@ -439,7 +501,7 @@ function StatsPage({ l, lang, memorizedCount, lowCount, pct, memorizedSurahs, ac
         <h2 className="font-['Amiri'] text-3xl font-bold gold-text mb-5">{l.progress}</h2>
         <div className="flex gap-1 border-b border-white/[0.04] pb-0">
           {tabs.map((t) => (
-            <button key={t.id} onClick={() => setTab(t.id)}
+            <button key={t.id} onClick={() => changeTab(t.id)}
               className={`px-4 py-2 text-[13px] font-medium border-b-2 -mb-px cursor-pointer transition-colors bg-transparent ${tab === t.id ? "border-gold text-gold" : "border-transparent text-faint hover:text-cream"}`}>
               {t.label}
             </button>
@@ -561,7 +623,7 @@ function WeakestList({ weakestByJuz, l, lang, onSelectSurah }: {
                     </div>
                     <div className="flex-1 min-w-0">
                       <span className={`text-sm font-semibold ${isOpen ? "text-gold-soft" : "text-cream"}`}>{sg.surah.latin}</span>
-                      <span className="text-[12px] text-red ml-2">{sg.items.length} {l.ayahs}</span>
+                      <span className="text-[12px] text-red ml-2">{sg.items.length} {l.ayat}</span>
                     </div>
                     <HugeiconsIcon icon={isOpen ? ArrowDown01Icon : ArrowRight01Icon} size={16} className={`shrink-0 transition-colors ${isOpen ? "text-gold" : "text-faint"}`} />
                   </button>
@@ -697,7 +759,7 @@ function ActivityHeatmap({ log, l }: { log: ReviewEvent[]; l: ReturnType<typeof 
             if (isFuture) return <div key={wi} className="w-[12px] h-[12px]" />;
             const ds = `${day.date.getFullYear()}-${day.date.getMonth()}-${day.date.getDate()}`;
             const isToday = ds === todayStr;
-            const tipDate = fmtDate(day.date);
+            const tipDate = fmtDate(day.date, l.months);
             const tipCount = `Muraja'ah : ${day.count}`;
             return (
               <div key={wi}
@@ -825,7 +887,7 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
     const result: DateGroup[] = [];
     for (const [, dayEvents] of dateMap) {
       const d = new Date(dayEvents[0].timestamp);
-      const dateLabel = fmtDate(d);
+      const dateLabel = fmtDate(d, l.months);
 
       const surahMap = new Map<number, HistEvent[]>();
       for (const e of dayEvents) {
@@ -877,6 +939,7 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
               else setDateTo(d);
               setShowCalendar(null);
             }}
+            months={l.months}
           />
         )}
       </div>
@@ -968,7 +1031,7 @@ function DateFilterBtn({ label, value, onClick, active }: { label: string; value
   );
 }
 
-function CalendarPicker({ value, onChange }: { value: Date | null; onChange: (d: Date) => void }) {
+function CalendarPicker({ value, onChange, months }: { value: Date | null; onChange: (d: Date) => void; months: string[] }) {
   const today = new Date();
   const [viewYear, setViewYear] = useState(value?.getFullYear() ?? today.getFullYear());
   const [viewMonth, setViewMonth] = useState(value?.getMonth() ?? today.getMonth());
@@ -996,7 +1059,7 @@ function CalendarPicker({ value, onChange }: { value: Date | null; onChange: (d:
         <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg bg-transparent border-none cursor-pointer hover:bg-white/[0.04] text-cream-dim transition-colors">
           <HugeiconsIcon icon={ArrowLeft01Icon} size={16} />
         </button>
-        <span className="text-sm font-semibold text-cream">{MONTHS_FULL[viewMonth]} {viewYear}</span>
+        <span className="text-sm font-semibold text-cream">{months[viewMonth]} {viewYear}</span>
         <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg bg-transparent border-none cursor-pointer hover:bg-white/[0.04] text-cream-dim transition-colors">
           <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
         </button>

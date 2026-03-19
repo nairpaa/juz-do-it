@@ -28,8 +28,8 @@ export const t = (lang: Lang) => ({
   outOf: lang === "en" ? `out of ${TOTAL_FORMATTED.en}` : `dari ${TOTAL_FORMATTED.id}`,
   needsReview: lang === "en" ? "Needs Review" : "Perlu Diulang",
   below40: lang === "en" ? "below 40%" : "di bawah 40%",
-  progressLabel: lang === "en" ? "Progress" : "Progres",
-  surahs: lang === "en" ? "surahs" : "surah",
+  makkiyah: "Makkiyah",
+  madaniyah: "Madaniyah",
   overview: lang === "en" ? "Overview" : "Ringkasan",
   charts: lang === "en" ? "Statistics" : "Statistik",
   dailyReviews: lang === "en" ? "Daily Muraja'ah (30 days)" : "Muraja'ah Harian (30 hari)",
@@ -47,8 +47,7 @@ export const t = (lang: Lang) => ({
   weakestAyahs: lang === "en" ? "Weakest Ayahs" : "Ayat Terlemah",
   selectSurahToStart: lang === "en" ? "Select a surah to start memorizing" : "Pilih surah untuk mulai menghafal",
   allGood: lang === "en" ? "All ayahs in good retention" : "Semua ayat dalam kondisi baik",
-  ayat: "ayat",
-  ayahs: lang === "en" ? "ayahs" : "ayat",
+  ayat: lang === "en" ? "ayahs" : "ayat",
   ofAyahsTracked: (n: number, total: number) =>
     lang === "en" ? `${n} of ${total} ayahs tracked` : `${n} dari ${total} ayat dilacak`,
   all: lang === "en" ? "All" : "Semua",
@@ -60,6 +59,14 @@ export const t = (lang: Lang) => ({
   last: lang === "en" ? "Last" : "Terakhir",
   next: lang === "en" ? "Next" : "Berikutnya",
   ayah: lang === "en" ? "Ayah" : "Ayat",
+  justNow: lang === "en" ? "just now" : "baru saja",
+  timeAgo: (value: number, unit: string) =>
+    lang === "en" ? `${value}${unit} ago` : `${value}${unit === "m" ? "m" : unit === "h" ? "j" : "h"} lalu`,
+  timeIn: (value: number, unit: string) =>
+    lang === "en" ? `in ${value}${unit}` : `${value}${unit === "h" ? "j" : "h"} lagi`,
+  months: lang === "en"
+    ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    : ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
   selectSurah: lang === "en" ? "Select a surah" : "Pilih surah",
   totalAyahs: TOTAL_AYAHS,
   meaning: (s: { meaningId: string; meaningEn: string }) =>
