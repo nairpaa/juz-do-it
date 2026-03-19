@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Analytics02Icon, Book02Icon, Idea01Icon, Clock01Icon, BookCheckIcon, AlertCircleIcon, Calendar01Icon, Layers01Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowLeft01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import { Analytics02Icon, Book02Icon, Idea01Icon, Clock01Icon, BookCheckIcon, AlertCircleIcon, Calendar01Icon, Layers01Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowLeft01Icon, Cancel01Icon, Menu01Icon } from "@hugeicons/core-free-icons";
 import { surahs, Surah, TOTAL_AYAHS } from "@/data/surahs";
 import { RetentionBadge } from "@/components/BatteryIndicator";
 import { calculateBattery, calculateSurahBattery } from "@/lib/battery";
@@ -48,6 +48,7 @@ function setHash(page: Page, surahNumber?: number, statsTab?: string) {
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [allStates, setAllStates] = useState<DerivedAyahState[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Surah | null>(null);
@@ -71,17 +72,40 @@ export default function Home() {
   const loadSurah = useCallback((surah: Surah, updateHash = true) => {
     setPage("surahs");
     setSelected(surah);
+    setSidebarOpen(false);
     const m = new Map<number, DerivedAyahState>();
     getDerivedStatesForSurah(surah.number).forEach((s) => m.set(s.ayahNumber, s));
     setSurahStates(m);
     if (updateHash) setHash("surahs", surah.number);
   }, []);
 
+  const autoSelectSurah = useCallback(() => {
+    const states = getAllDerivedStates();
+    const activeStates = states.filter((s) => s.reviewCount > 0);
+    if (activeStates.length > 0) {
+      let worstSurah = activeStates[0].surahNumber;
+      let worstBattery = calculateBattery(activeStates[0]);
+      for (const s of activeStates) {
+        const b = calculateBattery(s);
+        if (b < worstBattery) { worstBattery = b; worstSurah = s.surahNumber; }
+      }
+      const surah = surahs.find((s) => s.number === worstSurah);
+      return surah || surahs[0];
+    }
+    return surahs[0];
+  }, []);
+
   const navigateTo = useCallback((p: Page, statsTab?: string) => {
     setPage(p);
-    if (p !== "surahs") setSelected(null);
-    setHash(p, undefined, statsTab);
-  }, []);
+    setSidebarOpen(false);
+    if (p === "surahs") {
+      const surah = autoSelectSurah();
+      loadSurah(surah);
+    } else {
+      setSelected(null);
+      setHash(p, undefined, statsTab);
+    }
+  }, [autoSelectSurah, loadSurah]);
 
   // Initial load: restore from hash or auto-select
   useEffect(() => {
@@ -104,20 +128,7 @@ export default function Home() {
     }
 
     // No hash or invalid: auto-select surah with lowest retention
-    const activeStates = states.filter((s) => s.reviewCount > 0);
-    if (activeStates.length > 0) {
-      let worstSurah = activeStates[0].surahNumber;
-      let worstBattery = calculateBattery(activeStates[0]);
-      for (const s of activeStates) {
-        const b = calculateBattery(s);
-        if (b < worstBattery) { worstBattery = b; worstSurah = s.surahNumber; }
-      }
-      const surah = surahs.find((s) => s.number === worstSurah);
-      if (surah) loadSurah(surah);
-      else loadSurah(surahs[0]);
-    } else {
-      loadSurah(surahs[0]);
-    }
+    loadSurah(autoSelectSurah());
   }, [loadSurah]);
 
   // Listen for browser back/forward
@@ -180,16 +191,37 @@ export default function Home() {
   if (!mounted) return null;
 
   return (
-    <div className="relative z-10 w-[92vw] max-w-[920px] flex flex-col items-center">
-    <div className="w-full h-[84vh] max-h-[700px] flex rounded-3xl overflow-hidden border border-gold/[0.15] bg-night-2/[0.92] backdrop-blur-[40px] shadow-[0_4px_60px_rgba(0,0,0,0.5),0_0_120px_rgba(212,168,83,0.05),inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="relative z-10 w-full md:w-[92vw] md:max-w-[920px] flex flex-col items-center">
+    <div className="w-full h-dvh md:h-[84vh] md:max-h-[700px] flex flex-col md:flex-row md:rounded-3xl overflow-hidden md:border md:border-gold/[0.15] bg-night-2/[0.92] backdrop-blur-[40px] md:shadow-[0_4px_60px_rgba(0,0,0,0.5),0_0_120px_rgba(212,168,83,0.05),inset_0_1px_0_rgba(255,255,255,0.04)]">
+
+      {/* ═══ MOBILE HEADER ═══ */}
+      <div className="md:hidden shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/[0.04]">
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-transparent border-none cursor-pointer text-cream-dim hover:text-cream">
+          <HugeiconsIcon icon={Menu01Icon} size={20} />
+        </button>
+        <div className="font-['Amiri'] text-xl font-bold">
+          <span className="gold-text">Juz</span><span>DoIt</span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          {(["en", "id"] as Lang[]).map((code) => (
+            <button key={code} onClick={() => setLang(code)}
+              className={`px-2 py-0.5 text-xs font-medium rounded-md cursor-pointer border-none transition-all ${lang === code ? "bg-gold/[0.1] text-gold" : "bg-transparent text-faint hover:text-cream"}`}>
+              {code.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ═══ SIDEBAR OVERLAY (mobile) ═══ */}
+      {sidebarOpen && <div className="md:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setSidebarOpen(false)} />}
 
       {/* ═══ SIDEBAR ═══ */}
-      <div className="w-[240px] shrink-0 flex flex-col min-h-0 border-r border-white/[0.04]">
+      <div className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 fixed md:relative z-50 md:z-auto w-[280px] md:w-[240px] h-full shrink-0 flex flex-col min-h-0 border-r border-white/[0.04] bg-night-2 md:bg-transparent transition-transform duration-200`}>
         <div className="shrink-0 px-5 pt-5 pb-4 flex items-center justify-between">
           <div className="font-['Amiri'] text-2xl font-bold">
             <span className="gold-text">Juz</span><span>DoIt</span>
           </div>
-          <div className="flex items-center gap-0.5">
+          <div className="hidden md:flex items-center gap-0.5">
             {(["en", "id"] as Lang[]).map((code) => (
               <button key={code} onClick={() => setLang(code)}
                 className={`px-2 py-0.5 text-xs font-medium rounded-md cursor-pointer border-none transition-all ${lang === code ? "bg-gold/[0.1] text-gold" : "bg-transparent text-faint hover:text-cream"}`}>
@@ -267,7 +299,7 @@ export default function Home() {
         )}
       </div>
     </div>
-    <div className="mt-3 text-xs text-cream-dim">
+    <div className="hidden md:block mt-3 text-xs text-cream-dim">
       JuzDoIt by <a href="https://nairpaa.me" target="_blank" rel="noopener noreferrer" className="text-gold-dim hover:text-gold transition-colors">Nairpaa</a>
     </div>
     </div>
