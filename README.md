@@ -13,6 +13,7 @@ JuzDoIt helps you know exactly which ayahs are getting weak and need to be revie
 - **Event sourcing** — every muraja'ah click is stored as a separate event, giving you full control to delete any accidental entry without losing other progress
 - **History page** — view and manage every recorded muraja'ah event
 - **Statistics dashboard** — contribution heatmap, daily review chart, total memorized chart, and weakest ayahs list
+- **Export/Import** — backup and restore your data as JSON
 - **Bilingual** — English and Bahasa Indonesia, switchable from the header
 - **Offline-first** — all data stored in localStorage, no account needed
 
@@ -29,9 +30,15 @@ retention = 100% x e^(-elapsed / stability)
 - **lapse detection** checks retention at the time of review — if below 20%, you've forgotten and stability drops proportionally
 - cramming (multiple reviews in a short time) does not inflate your progress
 
-## Getting started
+## Usage
+
+**Online:** https://hifz.nairpaa.me
+
+**Run locally:**
 
 ```bash
+git clone https://github.com/nairpaa/juz-do-it.git
+cd juz-do-it
 npm install
 npm run dev
 ```
@@ -40,5 +47,6 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## License
 
-[MIT](LICENSE)
+This project is open source and available under the [MIT License](LICENSE).
 
+Feel free to use, modify, and distribute. Contributions are welcome!
