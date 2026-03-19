@@ -47,17 +47,21 @@ function setHash(page: Page, surahNumber?: number, statsTab?: string) {
 }
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
   const [allStates, setAllStates] = useState<DerivedAyahState[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Surah | null>(null);
   const [surahStates, setSurahStates] = useState<Map<number, DerivedAyahState>>(new Map());
   const [page, setPage] = useState<Page>("surahs");
   const [statsTabInit, setStatsTabInit] = useState<string | undefined>(undefined);
-  const [lang, setLangState] = useState<Lang>(() => {
-    if (typeof window === "undefined") return "en";
-    return (localStorage.getItem("juz-do-it-lang") as Lang) || "en";
-  });
+  const [lang, setLangState] = useState<Lang>("en");
   const setLang = (l: Lang) => { setLangState(l); localStorage.setItem("juz-do-it-lang", l); };
+
+  useEffect(() => {
+    const saved = localStorage.getItem("juz-do-it-lang") as Lang;
+    if (saved) setLangState(saved);
+    setMounted(true);
+  }, []);
   const l = useMemo(() => t(lang), [lang]);
 
   const [log, setLog] = useState<ReviewEvent[]>([]);
@@ -172,6 +176,8 @@ export default function Home() {
   }, [snackbar, selected, loadSurah, reload]);
 
   const navLabels: Record<Page, string> = { surahs: l.quran, stats: l.progress, history: l.history, guide: l.guide };
+
+  if (!mounted) return null;
 
   return (
     <div className="relative z-10 w-[92vw] max-w-[920px] flex flex-col items-center">
