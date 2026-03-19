@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Analytics02Icon, Book02Icon, Idea01Icon, Clock01Icon, BookCheckIcon, AlertCircleIcon, Calendar01Icon, Layers01Icon, ArrowDown01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
+import { Analytics02Icon, Book02Icon, Idea01Icon, Clock01Icon, BookCheckIcon, AlertCircleIcon, Calendar01Icon, Layers01Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowLeft01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { surahs, Surah, TOTAL_AYAHS } from "@/data/surahs";
 import { RetentionBadge } from "@/components/BatteryIndicator";
 import { calculateBattery, calculateSurahBattery } from "@/lib/battery";
@@ -16,6 +16,7 @@ import { timeAgo, nextReview } from "@/lib/time";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 const MONTHS_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const fmtDate = (d: Date) => `${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
 
 type Page = "surahs" | "stats" | "history" | "about";
@@ -604,7 +605,6 @@ function ActivityHeatmap({ log, l }: { log: ReviewEvent[]; l: ReturnType<typeof 
     return "rgba(212,168,83,0.9)";
   };
 
-  const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   // Build week columns
   const weekCols: { date: Date; count: number }[][] = [];
@@ -727,6 +727,18 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
 }) {
   const [confirm, setConfirm] = useState<{ surahNumber: number; ayahNumber: number; timestamp: string; surahName: string } | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [dateFrom, setDateFrom] = useState<Date | null>(null);
+  const [dateTo, setDateTo] = useState<Date | null>(null);
+  const [showCalendar, setShowCalendar] = useState<"from" | "to" | null>(null);
+  const calRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (calRef.current && !calRef.current.contains(e.target as Node)) setShowCalendar(null);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const toggle = (key: string) => {
     setExpanded((prev) => {
@@ -742,10 +754,21 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
   type DateGroup = { dateLabel: string; surahGroups: SurahGroup[] };
 
   const grouped = useMemo(() => {
-    const events: HistEvent[] = [];
+    let events: HistEvent[] = [];
     for (const state of allStates) {
       for (const event of state.events) events.push(event);
     }
+
+    // Apply date filters
+    if (dateFrom) {
+      const fromTime = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate()).getTime();
+      events = events.filter((e) => new Date(e.timestamp).getTime() >= fromTime);
+    }
+    if (dateTo) {
+      const toTime = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate()).getTime() + 86400000;
+      events = events.filter((e) => new Date(e.timestamp).getTime() < toTime);
+    }
+
     events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     const dateMap = new Map<string, HistEvent[]>();
@@ -778,7 +801,7 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
     }
 
     return result;
-  }, [allStates]);
+  }, [allStates, dateFrom, dateTo]);
 
   const fmtTime = (ts: string) => {
     const d = new Date(ts);
@@ -789,7 +812,31 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
 
   return (
     <div className={`flex-1 overflow-y-auto px-8 py-8 ${SCROLL_CLS}`}>
-      <h2 className="font-['Amiri'] text-3xl font-bold gold-text mb-6">{l.history}</h2>
+      <h2 className="font-['Amiri'] text-3xl font-bold gold-text mb-4">{l.history}</h2>
+
+      {/* Date Range Filter */}
+      <div className="relative flex items-center gap-2 mb-5" ref={calRef}>
+        <DateFilterBtn label={l.filterFrom} value={dateFrom} onClick={() => setShowCalendar(showCalendar === "from" ? null : "from")} active={showCalendar === "from"} />
+        <DateFilterBtn label={l.filterTo} value={dateTo} onClick={() => setShowCalendar(showCalendar === "to" ? null : "to")} active={showCalendar === "to"} />
+        {(dateFrom || dateTo) && (
+          <button onClick={() => { setDateFrom(null); setDateTo(null); setShowCalendar(null); }}
+            className="flex items-center gap-1 px-2 h-8 text-xs font-medium text-red bg-red/[0.06] border border-red/[0.1] rounded-lg cursor-pointer hover:bg-red/[0.13] transition-colors">
+            <HugeiconsIcon icon={Cancel01Icon} size={12} />
+            {l.clearFilter}
+          </button>
+        )}
+
+        {showCalendar && (
+          <CalendarPicker
+            value={showCalendar === "from" ? dateFrom : dateTo}
+            onChange={(d) => {
+              if (showCalendar === "from") setDateFrom(d);
+              else setDateTo(d);
+              setShowCalendar(null);
+            }}
+          />
+        )}
+      </div>
 
       {totalEvents === 0 ? (
         <div className="text-center py-10 text-base text-faint">{l.noHistory}</div>
@@ -862,6 +909,92 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function DateFilterBtn({ label, value, onClick, active }: { label: string; value: Date | null; onClick: () => void; active: boolean }) {
+  return (
+    <button onClick={onClick}
+      className={`flex items-center gap-2 px-3 h-8 text-xs font-medium rounded-lg border cursor-pointer transition-colors ${
+        active ? "bg-gold/[0.1] border-gold/[0.2] text-gold" : "bg-white/[0.02] border-white/[0.06] text-cream-dim hover:bg-white/[0.04]"
+      }`}>
+      <HugeiconsIcon icon={Calendar01Icon} size={13} />
+      {value ? `${label}: ${value.getDate()} ${MONTHS_SHORT[value.getMonth()]} ${value.getFullYear()}` : label}
+    </button>
+  );
+}
+
+function CalendarPicker({ value, onChange }: { value: Date | null; onChange: (d: Date) => void }) {
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(value?.getFullYear() ?? today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(value?.getMonth() ?? today.getMonth());
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay();
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
+    else setViewMonth(viewMonth - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
+    else setViewMonth(viewMonth + 1);
+  };
+
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const selectedKey = value ? `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}` : "";
+  const DAY_HEADERS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  return (
+    <div className="absolute top-full left-0 mt-2 z-50 bg-night-2 border border-gold/[0.15] rounded-xl p-4 shadow-[0_8px_40px_rgba(0,0,0,0.6)] w-[280px]">
+      {/* Header: month/year nav */}
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg bg-transparent border-none cursor-pointer hover:bg-white/[0.04] text-cream-dim transition-colors">
+          <HugeiconsIcon icon={ArrowLeft01Icon} size={16} />
+        </button>
+        <span className="text-sm font-semibold text-cream">{MONTHS_FULL[viewMonth]} {viewYear}</span>
+        <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg bg-transparent border-none cursor-pointer hover:bg-white/[0.04] text-cream-dim transition-colors">
+          <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
+        </button>
+      </div>
+
+      {/* Day headers */}
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {DAY_HEADERS.map((d) => (
+          <div key={d} className="text-center text-[10px] text-faint font-medium py-1">{d}</div>
+        ))}
+      </div>
+
+      {/* Days grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+          <div key={`empty-${i}`} />
+        ))}
+        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+          const d = new Date(viewYear, viewMonth, day);
+          const isFuture = d.getTime() > todayDate.getTime();
+          const key = `${viewYear}-${viewMonth}-${day}`;
+          const isSelected = key === selectedKey;
+          const isToday = d.getTime() === todayDate.getTime();
+
+          return (
+            <button key={day} disabled={isFuture}
+              onClick={() => onChange(new Date(viewYear, viewMonth, day))}
+              className={`w-full aspect-square flex items-center justify-center text-xs rounded-lg border-none cursor-pointer transition-colors ${
+                isSelected
+                  ? "bg-gold/[0.2] text-gold font-semibold"
+                  : isToday
+                    ? "bg-white/[0.04] text-cream ring-1 ring-gold/30"
+                    : isFuture
+                      ? "text-ghost/30 cursor-not-allowed bg-transparent"
+                      : "text-cream-dim bg-transparent hover:bg-white/[0.04]"
+              }`}>
+              {day}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
