@@ -67,6 +67,15 @@ export const t = (lang: Lang) => ({
   months: lang === "en"
     ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     : ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
+  monthsShort: lang === "en"
+    ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    : ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"],
+  dayLabels: lang === "en"
+    ? ["", "Mon", "", "Wed", "", "Fri", ""]
+    : ["", "Sen", "", "Rab", "", "Jum", ""],
+  dayHeaders: lang === "en"
+    ? ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+    : ["Mi", "Se", "Se", "Ra", "Ka", "Ju", "Sa"],
   selectSurah: lang === "en" ? "Select a surah" : "Pilih surah",
   totalAyahs: TOTAL_AYAHS,
   meaning: (s: { meaningId: string; meaningEn: string }) =>

@@ -15,7 +15,6 @@ import { Lang, t } from "@/lib/i18n";
 import { timeAgo, nextReview } from "@/lib/time";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
-const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const fmtDate = (d: Date, months: string[]) => `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 
 type Page = "surahs" | "stats" | "history" | "guide";
@@ -726,14 +725,14 @@ function ActivityHeatmap({ log, l }: { log: ReviewEvent[]; l: ReturnType<typeof 
     if (firstDay && firstDay.date.getMonth() !== lastMonth && (w - lastCol) >= 3) {
       lastMonth = firstDay.date.getMonth();
       lastCol = w;
-      monthLabels.push({ label: MONTHS_SHORT[lastMonth], col: w });
+      monthLabels.push({ label: l.monthsShort[lastMonth], col: w });
     }
   }
 
   const today = new Date();
   const todayTime = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
-  const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
+  const DAY_LABELS = l.dayLabels;
 
   return (
     <div ref={containerRef} className="relative rounded-xl bg-white/[0.02] border border-white/[0.04] p-4">
@@ -921,8 +920,8 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
 
       {/* Date Range Filter */}
       <div className="relative flex items-center gap-2 mb-5" ref={calRef}>
-        <DateFilterBtn label={l.filterFrom} value={dateFrom} onClick={() => setShowCalendar(showCalendar === "from" ? null : "from")} active={showCalendar === "from"} />
-        <DateFilterBtn label={l.filterTo} value={dateTo} onClick={() => setShowCalendar(showCalendar === "to" ? null : "to")} active={showCalendar === "to"} />
+        <DateFilterBtn label={l.filterFrom} value={dateFrom} onClick={() => setShowCalendar(showCalendar === "from" ? null : "from")} active={showCalendar === "from"} monthsShort={l.monthsShort} />
+        <DateFilterBtn label={l.filterTo} value={dateTo} onClick={() => setShowCalendar(showCalendar === "to" ? null : "to")} active={showCalendar === "to"} monthsShort={l.monthsShort} />
         {(dateFrom || dateTo) && (
           <button onClick={() => { setDateFrom(null); setDateTo(null); setShowCalendar(null); }}
             className="flex items-center gap-1 px-2 h-8 text-xs font-medium text-red bg-red/[0.06] border border-red/[0.1] rounded-lg cursor-pointer hover:bg-red/[0.13] transition-colors">
@@ -940,6 +939,7 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
               setShowCalendar(null);
             }}
             months={l.months}
+            dayHeaders={l.dayHeaders}
           />
         )}
       </div>
@@ -1019,19 +1019,19 @@ function HistoryPage({ l, lang, allStates, onDeleteEvent, onSelectSurah }: {
   );
 }
 
-function DateFilterBtn({ label, value, onClick, active }: { label: string; value: Date | null; onClick: () => void; active: boolean }) {
+function DateFilterBtn({ label, value, onClick, active, monthsShort }: { label: string; value: Date | null; onClick: () => void; active: boolean; monthsShort: string[] }) {
   return (
     <button onClick={onClick}
       className={`flex items-center gap-2 px-3 h-8 text-xs font-medium rounded-lg border cursor-pointer transition-colors ${
         active ? "bg-gold/[0.1] border-gold/[0.2] text-gold" : "bg-white/[0.02] border-white/[0.06] text-cream-dim hover:bg-white/[0.04]"
       }`}>
       <HugeiconsIcon icon={Calendar01Icon} size={13} />
-      {value ? `${label}: ${value.getDate()} ${MONTHS_SHORT[value.getMonth()]} ${value.getFullYear()}` : label}
+      {value ? `${label}: ${value.getDate()} ${monthsShort[value.getMonth()]} ${value.getFullYear()}` : label}
     </button>
   );
 }
 
-function CalendarPicker({ value, onChange, months }: { value: Date | null; onChange: (d: Date) => void; months: string[] }) {
+function CalendarPicker({ value, onChange, months, dayHeaders }: { value: Date | null; onChange: (d: Date) => void; months: string[]; dayHeaders: string[] }) {
   const today = new Date();
   const [viewYear, setViewYear] = useState(value?.getFullYear() ?? today.getFullYear());
   const [viewMonth, setViewMonth] = useState(value?.getMonth() ?? today.getMonth());
@@ -1050,7 +1050,7 @@ function CalendarPicker({ value, onChange, months }: { value: Date | null; onCha
 
   const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const selectedKey = value ? `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}` : "";
-  const DAY_HEADERS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  const DAY_HEADERS = dayHeaders;
 
   return (
     <div className="absolute top-full left-0 mt-2 z-50 bg-night-2 border border-gold/[0.15] rounded-xl p-4 shadow-[0_8px_40px_rgba(0,0,0,0.6)] w-[280px]">
