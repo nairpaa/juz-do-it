@@ -85,28 +85,28 @@ export const t = (lang: Lang) => ({
     lang === "en" ? s.meaningEn : s.meaningId,
 
   // Guide page
-  guideSubtitle: lang === "en" ? "Your Quran memorization companion" : "Teman hafalan Al-Quran Anda",
+  guideSubtitle: lang === "en" ? "Your Quran memorization companion" : "Teman hafalan Al-Quran kamu",
   guideWarningTitle: lang === "en" ? "Before you start" : "Sebelum mulai",
   guideWarningBody: lang === "en"
     ? "Make sure you have learned proper tajweed (Quran recitation rules) before memorizing. Memorizing with incorrect pronunciation means you'll have to relearn everything later — that's double the work. Always have a teacher or a study partner who can check your recitation. JuzDoIt is a tracking tool, not a replacement for a teacher."
-    : "Pastikan Anda sudah belajar tajwid (aturan membaca Al-Quran) dengan benar sebelum menghafal. Menghafal dengan bacaan yang salah berarti harus belajar ulang semuanya nanti — itu kerja dua kali. Selalu punya guru atau rekan yang bisa memeriksa bacaan Anda. JuzDoIt adalah alat bantu pelacakan, bukan pengganti guru.",
+    : "Pastikan kamu sudah belajar tajwid (aturan membaca Al-Quran) dengan benar sebelum menghafal. Menghafal dengan bacaan yang salah berarti harus belajar ulang semuanya nanti — itu kerja dua kali. Selalu punya guru atau rekan yang bisa memeriksa bacaan kamu. JuzDoIt adalah alat bantu pelacakan, bukan pengganti guru.",
   guideWhatTitle: lang === "en" ? "What is JuzDoIt?" : "Apa itu JuzDoIt?",
   guideWhatBody: lang === "en"
     ? "When we memorize the Quran, the hardest part isn't memorizing — it's keeping what we've memorized. Without regular review, our memory fades. JuzDoIt helps you know exactly which ayahs are getting weak and need to be reviewed, so nothing is forgotten."
-    : "Saat menghafal Al-Quran, yang paling sulit bukan menghafalnya — tapi menjaga hafalan yang sudah ada. Tanpa diulang secara rutin, ingatan akan memudar. JuzDoIt membantu Anda tahu persis ayat mana yang mulai lemah dan perlu diulang, supaya tidak ada yang terlupakan.",
+    : "Saat menghafal Al-Quran, yang paling sulit bukan menghafalnya — tapi menjaga hafalan yang sudah ada. Tanpa diulang secara rutin, ingatan akan memudar. JuzDoIt membantu kamu tahu persis ayat mana yang mulai lemah dan perlu diulang, supaya tidak ada yang terlupakan.",
   guideHowTitle: lang === "en" ? "How it works" : "Cara kerja",
   guideHowBody: lang === "en"
     ? "Every ayah you memorize gets tracked in this app. Think of each ayah like a plant — if you water it regularly (review), it stays alive and grows stronger. If you leave it too long without watering, it starts to wilt. JuzDoIt shows you which \"plants\" need watering today."
-    : "Setiap ayat yang Anda hafal akan dilacak di aplikasi ini. Bayangkan setiap ayat seperti tanaman — kalau rajin disiram (diulang), dia tetap hidup dan makin kuat. Kalau terlalu lama tidak disiram, mulai layu. JuzDoIt menunjukkan \"tanaman\" mana yang perlu disiram hari ini.",
+    : "Setiap ayat yang kamu hafal akan dilacak di aplikasi ini. Bayangkan setiap ayat seperti tanaman — kalau rajin disiram (diulang), dia tetap hidup dan makin kuat. Kalau terlalu lama tidak disiram, mulai layu. JuzDoIt menunjukkan \"tanaman\" mana yang perlu disiram hari ini.",
   guideFormulaEn: "The app sets your review schedule automatically. At first you review an ayah the next day, then after 3 days, then a week, two weeks, a month — and the gap keeps getting longer. The more you review, the less often you need to. And as the gaps grow longer, you free up more time to memorize new ayahs. That's how JuzDoIt helps you not just maintain your memorization, but steadily grow it.",
-  guideFormulaId: "Aplikasi mengatur jadwal pengulangan secara otomatis. Awalnya Anda mengulang ayat besok, lalu setelah 3 hari, lalu seminggu, dua minggu, sebulan — dan jaraknya terus bertambah. Makin sering diulang, makin jarang perlu diulang. Dan saat jaraknya makin panjang, waktu luang Anda makin banyak untuk menghafal ayat baru. Begitulah JuzDoIt membantu bukan hanya menjaga hafalan, tapi juga terus menambahnya.",
+  guideFormulaId: "Aplikasi mengatur jadwal pengulangan secara otomatis. Awalnya kamu mengulang ayat besok, lalu setelah 3 hari, lalu seminggu, dua minggu, sebulan — dan jaraknya terus bertambah. Makin sering diulang, makin jarang perlu diulang. Dan saat jaraknya makin panjang, waktu luang kamu makin banyak untuk menghafal ayat baru. Begitulah JuzDoIt membantu bukan hanya menjaga hafalan, tapi juga terus menambahnya.",
   guideScienceTitle: lang === "en" ? "Why does this work?" : "Kenapa cara ini efektif?",
   guideScienceP1: lang === "en"
     ? "Our brains are built to forget. If we learn something new and never look at it again, most of it disappears within a day. This is normal — it happens to everyone."
     : "Otak kita memang dirancang untuk lupa. Kalau kita belajar sesuatu yang baru lalu tidak pernah dilihat lagi, sebagian besar hilang dalam sehari. Ini normal — terjadi pada semua orang.",
   guideScienceP2: lang === "en"
     ? "But there's a trick: if you review at just the right moment — right before you're about to forget — the memory becomes much stronger. And the next time, it takes even longer before you forget. This method is called spaced repetition, and it's used all over the world for learning languages, medicine, and more."
-    : "Tapi ada caranya: kalau Anda mengulang di waktu yang tepat — tepat sebelum lupa — ingatan jadi jauh lebih kuat. Dan berikutnya, butuh waktu lebih lama lagi sebelum lupa. Metode ini disebut spaced repetition, dan dipakai di seluruh dunia untuk belajar bahasa, kedokteran, dan lainnya.",
+    : "Tapi ada caranya: kalau kamu mengulang di waktu yang tepat — tepat sebelum lupa — ingatan jadi jauh lebih kuat. Dan berikutnya, butuh waktu lebih lama lagi sebelum lupa. Metode ini disebut spaced repetition, dan dipakai di seluruh dunia untuk belajar bahasa, kedokteran, dan lainnya.",
   guideScienceP3: lang === "en"
     ? "This same approach has been studied for Quran memorization. The result: those who review on a regular schedule remember far more than those who review whenever they feel like it."
     : "Pendekatan yang sama sudah diteliti untuk hafalan Al-Quran. Hasilnya: mereka yang mengulang secara terjadwal mengingat jauh lebih banyak dibanding yang mengulang sesuka hati.",
@@ -124,5 +124,5 @@ export const t = (lang: Lang) => ({
   guideHadith2Source: "— Musnad Ahmad 15645",
   guideClosing: lang === "en"
     ? "The more you memorize, the higher your rank in the hereafter. And it's not just for you — your parents will be honored with a crown of light on the Day of Judgment. Every ayah you memorize and every review you do is an investment for you and your family."
-    : "Semakin banyak yang dihafal, semakin tinggi derajat Anda di akhirat. Dan bukan hanya untuk Anda — orang tua Anda pun akan dimuliakan dengan mahkota cahaya di hari kiamat. Setiap ayat yang dihafal dan setiap muraja'ah adalah investasi untuk Anda dan keluarga.",
+    : "Semakin banyak yang dihafal, semakin tinggi derajat kamu di akhirat. Dan bukan hanya untuk kamu — orang tua kamu pun akan dimuliakan dengan mahkota cahaya di hari kiamat. Setiap ayat yang dihafal dan setiap muraja'ah adalah investasi untuk kamu dan keluarga.",
 });
