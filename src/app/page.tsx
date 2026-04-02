@@ -257,7 +257,7 @@ export default function Home() {
             return (
               <div key={s.number} onClick={() => loadSurah(s)}
                 className={`flex items-center gap-3 py-2 px-3 rounded-xl cursor-pointer transition-all mb-0.5 ${isSel ? "bg-gold/[0.06]" : "hover:bg-white/[0.02]"}`}>
-                <div className={`w-7 h-7 flex items-center justify-center text-xs font-semibold rounded-lg shrink-0 ${has ? "bg-gold/[0.07] text-gold" : "bg-white/[0.02] text-faint"}`}>{s.number}</div>
+                <div className={`w-7 h-7 flex items-center justify-center text-xs font-semibold rounded-lg shrink-0 ${has ? "bg-gold/[0.07] text-gold" : "bg-white/[0.04] text-muted"}`}>{s.number}</div>
                 <div className="flex-1">
                   <div className="text-[13px] font-medium text-cream leading-tight">{s.latin}</div>
                   {has && <div className="mt-0.5"><RetentionBadge level={calculateSurahBattery(sp)} /></div>}
@@ -397,21 +397,21 @@ function SurahDetail({ surah, surahActive, surahStates, l, lang, onReview }: {
           const next = state ? nextReview(state, lang) : "";
           const isReady = next === l.ready;
           return (
-            <div key={n} className={`flex items-center gap-4 py-3 px-4 rounded-xl transition-colors hover:bg-white/[0.012] ${!tracked ? "opacity-35" : ""}`}>
-              <div className={`w-9 h-9 flex items-center justify-center text-sm font-semibold rounded-lg shrink-0 ${tracked ? "bg-gold/[0.05] text-gold-dim" : "bg-white/[0.025] text-faint"}`}>{n}</div>
+            <div key={n} className={`flex items-center gap-4 py-3 px-4 rounded-xl transition-colors hover:bg-white/[0.012] ${!tracked ? "opacity-55" : ""}`}>
+              <div className={`w-9 h-9 flex items-center justify-center text-sm font-semibold rounded-lg shrink-0 ${tracked ? "bg-gold/[0.05] text-gold-dim" : "bg-white/[0.04] text-muted"}`}>{n}</div>
               <div className="flex-1 min-w-0 flex items-center gap-3 flex-wrap">
                 {tracked ? (
                   <>
                     <RetentionBadge level={batt} />
-                    <span className="text-[12px] text-ghost">{timeAgo(state!.lastReviewedAt!, lang)}</span>
-                    <span className={`text-[12px] font-medium ${isReady ? "text-gold" : "text-ghost"}`}>{next}</span>
+                    <span className="text-[12px] text-muted">{timeAgo(state!.lastReviewedAt!, lang)}</span>
+                    <span className={`text-[12px] font-medium ${isReady ? "text-gold" : "text-muted"}`}>{next}</span>
                   </>
                 ) : (
-                  <span className="text-sm text-ghost">{l.notMemorized}</span>
+                  <span className="text-sm text-muted">{l.notMemorized}</span>
                 )}
               </div>
               <button onClick={() => handleReview(n)}
-                className="shrink-0 h-8 px-3 flex items-center justify-center text-sm font-medium rounded-lg bg-green/[0.06] border border-green/[0.1] text-green cursor-pointer hover:bg-green/[0.13] transition-colors">{tracked ? l.reviewBtn : l.start}</button>
+                className={`shrink-0 h-8 px-3 flex items-center justify-center text-sm font-medium rounded-lg border cursor-pointer transition-colors ${tracked ? "bg-green/[0.06] border-green/[0.1] text-green hover:bg-green/[0.13]" : "bg-gold/[0.08] border-gold/[0.15] text-gold hover:bg-gold/[0.15]"}`}>{tracked ? l.reviewBtn : l.start}</button>
             </div>
           );
         })}
@@ -706,7 +706,7 @@ function WeakestList({ weakestByJuz, l, lang, onSelectSurah }: {
                           <div className="w-9 h-9 flex items-center justify-center text-sm font-semibold rounded-lg shrink-0 bg-gold/[0.05] text-gold-dim">{w.ayahNumber}</div>
                           <div className="flex-1 min-w-0 flex items-center gap-3">
                             <RetentionBadge level={w.battery} />
-                            {w.lastReviewedAt && <span className="text-[12px] text-ghost">{timeAgo(w.lastReviewedAt, lang)}</span>}
+                            {w.lastReviewedAt && <span className="text-[12px] text-muted">{timeAgo(w.lastReviewedAt, lang)}</span>}
                           </div>
                         </div>
                       ))}
@@ -1046,8 +1046,8 @@ function HistoryPage({ l, allStates, onDeleteEvent }: {
                               className="flex items-center gap-4 py-3 px-4 rounded-xl transition-colors hover:bg-white/[0.012]">
                               <div className="w-9 h-9 flex items-center justify-center text-sm font-semibold rounded-lg shrink-0 bg-gold/[0.05] text-gold-dim">{e.ayahNumber}</div>
                               <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                                <HugeiconsIcon icon={Clock01Icon} size={12} className="text-ghost" />
-                                <span className="text-[12px] text-ghost">{fmtTime(e.timestamp)}</span>
+                                <HugeiconsIcon icon={Clock01Icon} size={12} className="text-muted" />
+                                <span className="text-[12px] text-muted">{fmtTime(e.timestamp)}</span>
                               </div>
                               <button onClick={(ev) => { ev.stopPropagation(); setConfirm({ ...e, surahName: sg.surah.latin }); }}
                                 className="px-2 h-7 text-xs font-medium rounded-lg bg-red/[0.06] border border-red/[0.1] text-red cursor-pointer hover:bg-red/[0.13] transition-colors">
