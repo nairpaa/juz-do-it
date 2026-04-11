@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "JuzDoIt — Quran Memorization",
+  title: "JuzDoIt - Quran Memorization",
   description: "Track your Quran memorization with spaced repetition",
 };
 
