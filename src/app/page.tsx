@@ -199,9 +199,7 @@ export default function Home() {
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-transparent border-none cursor-pointer text-cream-dim hover:text-cream">
           <HugeiconsIcon icon={Menu01Icon} size={20} />
         </button>
-        <div className="font-['Amiri'] text-xl font-bold">
-          <span className="gold-text">Juz</span><span>DoIt</span>
-        </div>
+        <img src="/logo.svg" alt="JuzDolt" className="h-[26px] w-auto" />
         <div className="flex items-center gap-0.5">
           {(["en", "id"] as Lang[]).map((code) => (
             <button key={code} onClick={() => setLang(code)}
@@ -218,9 +216,7 @@ export default function Home() {
       {/* ═══ SIDEBAR ═══ */}
       <div className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 fixed md:relative z-50 md:z-auto w-[280px] md:w-[240px] h-full shrink-0 flex flex-col min-h-0 border-r border-white/[0.04] bg-night-2 md:bg-transparent transition-transform duration-200`}>
         <div className="shrink-0 px-5 pt-5 pb-4 flex items-center justify-between">
-          <div className="font-['Amiri'] text-2xl font-bold">
-            <span className="gold-text">Juz</span><span>DoIt</span>
-          </div>
+          <img src="/logo.svg" alt="JuzDolt" className="h-[33px] w-auto" />
           <div className="hidden md:flex items-center gap-0.5">
             {(["en", "id"] as Lang[]).map((code) => (
               <button key={code} onClick={() => setLang(code)}

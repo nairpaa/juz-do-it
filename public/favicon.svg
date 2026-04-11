@@ -1,15 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="3850 5547 598 598" fill-rule="evenodd" clip-rule="evenodd">
   <defs>
-    <style>@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@700');</style>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#f0d590"/>
-      <stop offset="50%" stop-color="#d4a853"/>
-      <stop offset="100%" stop-color="#9e7a3a"/>
+    <linearGradient id="jBody" gradientUnits="userSpaceOnUse" x1="3962.16" y1="5846.46" x2="4305.56" y2="5846.46">
+      <stop offset="0" stop-color="#FEC52D"/>
+      <stop offset="1" stop-color="#F3A261"/>
     </linearGradient>
   </defs>
-  <rect width="32" height="32" rx="8" fill="#0e0c1c"/>
-  <text x="16" y="25" text-anchor="middle" font-family="Amiri, serif" font-weight="700" font-size="24" fill="url(#g)">J</text>
-  <!-- Crescent -->
-  <circle cx="25" cy="7.5" r="3.2" fill="url(#g)"/>
-  <circle cx="26.5" cy="6.5" r="2.8" fill="#0e0c1c"/>
+  <rect fill="#0E0C1C" x="3850" y="5547" width="598" height="598" rx="75" ry="75"/>
+  <path fill="#373435" d="M3989 5858c-2,21 0,77 0,104 0,11 -2,23 7,28 7,5 120,2 138,2 118,-12 85,11 146,-134 -10,-2 -58,-17 -72,-21 -14,-4 -63,-20 -74,-20 -9,0 -27,6 -36,9 -12,4 -25,7 -37,11 -17,5 -59,18 -72,21z"/>
+  <path fill="#373435" d="M3988 5810c20,-6 134,-41 146,-41 12,0 123,35 145,41 1,-11 0,-23 0,-34 0,-32 2,-25 -52,-51 -12,-6 -86,-43 -93,-43 -7,0 -81,37 -93,43 -8,4 -15,7 -23,11 -32,15 -30,11 -30,39 0,12 0,24 0,35z"/>
+  <path fill="#4B4B4D" d="M4134 5682c-7,0 -81,37 -93,43 -8,4 -15,7 -23,11 -32,15 -30,11 -30,39 0,12 0,24 0,35 20,-6 134,-41 146,-41 0,0 0,0 1,0l0 -87c-1,0 -1,0 -1,0z"/>
+  <circle fill="none" stroke="#373435" stroke-width="6.94488" cx="4134" cy="5872" r="46"/>
+  <path fill="url(#jBody)" d="M4305 5634c-30,-3 -63,19 -77,38 -21,32 -18,53 -18,97 0,39 1,77 0,116 0,95 -128,108 -151,21 -4,-16 -2,-64 -2,-85 0,-17 1,-14 -15,-12 -14,2 -32,10 -41,17 -22,17 -39,41 -39,77 1,68 41,117 91,139 65,29 131,20 182,-16 21,-15 41,-38 52,-62 17,-34 18,-56 18,-99 0,-16 1,-222 0,-231z"/>
+  <circle fill="#FEC52D" cx="4134" cy="5885" r="50"/>
+  <path fill="#E3A62B" d="M4096 5898c1,-26 23,-47 49,-47 13,0 25,5 33,12 -8,-16 -25,-28 -44,-28 -21,0 -39,14 -46,32 -3,6 -4,12 -4,18 0,15 7,28 17,37 -3,-7 -5,-14 -5,-22 0,0 0,-1 0,-2z"/>
 </svg>
